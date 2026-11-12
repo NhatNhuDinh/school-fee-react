@@ -12,7 +12,7 @@ import {
 import { API_URL } from "@/shared/api/constants";
 import { DataTablePagination } from "@/shared/components/data-table/data-table-pagination";
 import { DatePicker } from "@/shared/components/form/date-picker";
-import { TimeInput } from "@/shared/components/form/time-input";
+import { TimePicker } from "@/shared/components/form/time-picker";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -459,7 +459,6 @@ export function NotificationComposeDialog({ batch, onClose, onCreated }: Props) 
                 label="Nội dung"
                 error={errors.content}
                 required
-                hint="Tên học sinh, lớp, khoản thu, số tiền và thông tin chuyển khoản được hệ thống tự chèn vào email."
               >
                 <Textarea
                   rows={6}
@@ -478,7 +477,7 @@ export function NotificationComposeDialog({ batch, onClose, onCreated }: Props) 
                   <DatePicker value={sendDate} onChange={setSendDate} invalid={Boolean(errors.sendAt)} />
                 </Field>
                 <Field label="Giờ" required>
-                  <TimeInput value={sendTime} onChange={(event) => setSendTime(event.target.value)} />
+                  <TimePicker value={sendTime} onChange={setSendTime} />
                 </Field>
               </div>
 
