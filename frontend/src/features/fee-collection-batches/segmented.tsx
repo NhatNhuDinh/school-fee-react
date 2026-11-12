@@ -39,7 +39,7 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-md font-medium transition-colors outline-none",
+              "rounded-md font-medium whitespace-nowrap transition-colors outline-none",
               "focus-visible:ring-ring/50 focus-visible:ring-2",
               size === "sm" ? "px-3 py-1 text-[13px]" : "px-3.5 py-1.5 text-sm",
               active

@@ -250,7 +250,7 @@ export function NotificationComposeDialog({ batch, onClose, onCreated }: Props) 
                   setPage(1);
                 }}
                 options={MODE_OPTIONS}
-                className="w-full [&>button]:flex-1"
+                className="w-full [&>button]:flex-auto [&>button]:px-2"
               />
               <div className="relative">
                 <Search className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2" />
