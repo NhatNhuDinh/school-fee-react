@@ -1,0 +1,106 @@
+# School years and the terms inside them.
+#
+# Every school-owned table carries a NOT NULL organization_id: a school is an
+# organization, and that column is what the tenant filter compares against. A
+# row that belongs to no school would be visible to nobody but a system
+# administrator, so the column is not nullable.
+databaseChangeLog:
+  - changeSet:
+      id: 018-create-academic-years
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: academic_years
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_academic_years
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_academic_years_organization
+                    references: organizations(id)
+              # Derived from the two dates by the service ("2026-2027").
+              - column:
+                  name: name
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: academic_years
+            columnNames: organization_id, name
+            constraintName: uq_academic_years_organization_name
+        - sql:
+            sql: ALTER TABLE academic_years ADD CONSTRAINT ck_academic_years_dates CHECK (end_date > start_date)
+        - createIndex:
+            tableName: academic_years
+            indexName: idx_academic_years_organization_start
+            columns:
+              - column:
+                  name: organization_id
+              - column:
+                  name: start_date
+        - createTable:
+            tableName: academic_periods
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_academic_periods
+              - column:
+                  name: academic_year_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_academic_periods_year
+                    references: academic_years(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_date
+                  type: date
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE academic_periods ADD CONSTRAINT ck_academic_periods_dates CHECK (end_date > start_date)
+        - createIndex:
+            tableName: academic_periods
+            indexName: idx_academic_periods_year
+            columns:
+              - column:
+                  name: academic_year_id

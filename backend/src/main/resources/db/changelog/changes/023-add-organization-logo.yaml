@@ -1,0 +1,16 @@
+# The school's logo, shown in the sidebar.
+#
+# Held on the row as a data URL rather than as a file, so it moves with the
+# school and needs no file store. The screens shrink it to a small square before
+# it is sent, which keeps the identity that carries it light.
+databaseChangeLog:
+  - changeSet:
+      id: 023-add-organization-logo
+      author: school-fee
+      changes:
+        - addColumn:
+            tableName: organizations
+            columns:
+              - column:
+                  name: logo
+                  type: text
