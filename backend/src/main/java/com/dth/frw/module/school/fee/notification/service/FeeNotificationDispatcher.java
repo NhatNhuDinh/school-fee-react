@@ -134,7 +134,8 @@ public class FeeNotificationDispatcher {
                     service.readLines(recipient.linesJson()), recipient.total(), recipient.orderCode(),
                     recipient.bankNumber(), recipient.bankCode(), recipient.bankHolder(),
                     recipient.qrBaseUrl(), recipient.qrTemplate(), recipient.qrShowInfo());
-            String html = renderer.render(context, "cid:" + FeeNotificationEmailRenderer.LOGO_CONTENT_ID);
+            FeeNotificationEmailRenderer.Logo logo = FeeNotificationEmailRenderer.Logo.parse(notification.schoolLogo());
+            String html = renderer.render(context, logo == null ? null : "cid:" + FeeNotificationEmailRenderer.LOGO_CONTENT_ID);
 
             MimeMessage message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -142,8 +143,9 @@ public class FeeNotificationDispatcher {
             helper.setTo(recipient.email());
             helper.setSubject(notification.subject());
             helper.setText(html, true);
-            helper.addInline(FeeNotificationEmailRenderer.LOGO_CONTENT_ID,
-                    new ByteArrayResource(renderer.logoBytes()), "image/png");
+            if (logo != null) {
+                helper.addInline(FeeNotificationEmailRenderer.LOGO_CONTENT_ID, new ByteArrayResource(logo.bytes()), logo.mime());
+            }
             sender.send(message);
 
             jdbc.update("update fee_notification_recipients set status = 'SENT', sent_at = now(), "
@@ -188,11 +190,11 @@ public class FeeNotificationDispatcher {
 
     private NotificationRow loadNotification(Long id) {
         List<NotificationRow> rows = jdbc.query("""
-                select n.subject, n.content, n.deadline, o.name as school_name
+                select n.subject, n.content, n.deadline, o.name as school_name, o.logo as school_logo
                 from fee_notifications n join organizations o on o.id = n.organization_id
                 where n.id = ?
                 """, (rs, i) -> new NotificationRow(rs.getString("subject"), rs.getString("content"),
-                rs.getDate("deadline").toLocalDate(), rs.getString("school_name")), id);
+                rs.getDate("deadline").toLocalDate(), rs.getString("school_name"), rs.getString("school_logo")), id);
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
@@ -222,7 +224,8 @@ public class FeeNotificationDispatcher {
         return value.length() <= ERROR_LIMIT ? value : value.substring(0, ERROR_LIMIT);
     }
 
-    private record NotificationRow(String subject, String content, LocalDate deadline, String schoolName) {
+    private record NotificationRow(String subject, String content, LocalDate deadline, String schoolName,
+                                    String schoolLogo) {
     }
 
     private record RecipientRow(long id, String studentName, String studentCode, String className, String email,

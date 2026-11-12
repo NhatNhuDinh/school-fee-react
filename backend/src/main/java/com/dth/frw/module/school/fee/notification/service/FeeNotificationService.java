@@ -315,7 +315,7 @@ public class FeeNotificationService implements FeeCollectionBatchLock {
         LocalDate due = deadline != null ? deadline : LocalDate.now(properties.zone()).plusDays(14);
         MailContext context = context(batch, snapshot, orEmpty(subject), orEmpty(content), due, orderCode,
                 snapshot.total(), paymentSnapshot());
-        return new Rendered(context.subject(), renderer.render(context, renderer.logoDataUri()),
+        return new Rendered(context.subject(), renderer.render(context, batch.getOrganization().getLogo()),
                 snapshot.studentName(), snapshot.className(), snapshot.email());
     }
 

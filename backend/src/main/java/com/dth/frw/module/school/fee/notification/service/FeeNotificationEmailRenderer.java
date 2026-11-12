@@ -2,8 +2,6 @@ package com.dth.frw.module.school.fee.notification.service;
 
 import com.dth.frw.module.school.fee.notification.service.FeeNotificationViews.FeeLine;
 import com.dth.frw.module.school.fee.notification.service.FeeNotificationViews.MailContext;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +9,6 @@ import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Locale;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,7 +28,6 @@ import org.springframework.stereotype.Component;
 public class FeeNotificationEmailRenderer {
 
     public static final String LOGO_CONTENT_ID = "school-logo";
-    private static final String LOGO_RESOURCE = "mail/school-logo.png";
     private static final Locale VIETNAMESE = Locale.forLanguageTag("vi-VN");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -43,22 +39,20 @@ public class FeeNotificationEmailRenderer {
     private static final String BORDER = "#9eb8dc";
     private static final String STRONG_LINE = "#12305c";
 
-    private final byte[] logo;
-
-    public FeeNotificationEmailRenderer() {
-        try {
-            this.logo = new ClassPathResource(LOGO_RESOURCE).getContentAsByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Không đọc được logo trường cho thông báo thu tiền", e);
+    /** A school logo decoded from the data URL stored on the organization. */
+    public record Logo(byte[] bytes, String mime) {
+        public static Logo parse(String dataUrl) {
+            if (dataUrl == null || !dataUrl.startsWith("data:") || !dataUrl.contains(";base64,")) {
+                return null;
+            }
+            int comma = dataUrl.indexOf(',');
+            String mime = dataUrl.substring(5, dataUrl.indexOf(';'));
+            try {
+                return new Logo(Base64.getDecoder().decode(dataUrl.substring(comma + 1)), mime);
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
         }
-    }
-
-    public byte[] logoBytes() {
-        return logo;
-    }
-
-    public String logoDataUri() {
-        return "data:image/png;base64," + Base64.getEncoder().encodeToString(logo);
     }
 
     /** The VietQR image for a payment: the account, the amount and the order code that goes in the transfer. */
@@ -99,8 +93,8 @@ public class FeeNotificationEmailRenderer {
                 + "<tr><td style=\"padding:32px 40px 0\">"
                 // header: school left, payment code right
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr>"
-                + "<td width=\"48\" valign=\"middle\"><img src=\"" + attr(logoSrc) + "\" width=\"36\" height=\"36\" alt=\"\" "
-                + "style=\"display:block;width:36px;height:36px;border-radius:8px\"></td>"
+                + (logoSrc == null || logoSrc.isBlank() ? "" : "<td width=\"48\" valign=\"middle\"><img src=\"" + attr(logoSrc) + "\" width=\"36\" height=\"36\" alt=\"\" "
+                + "style=\"display:block;width:36px;height:36px;border-radius:8px\"></td>")
                 + "<td valign=\"middle\" style=\"padding-left:4px\">"
                 + "<div style=\"font-size:14px;font-weight:600;line-height:20px;color:" + INK + "\">" + esc(c.schoolName()) + "</div>"
                 + "<div style=\"font-size:12px;line-height:18px;color:" + GREY + "\">" + esc(c.senderUnit()) + "</div></td>"
