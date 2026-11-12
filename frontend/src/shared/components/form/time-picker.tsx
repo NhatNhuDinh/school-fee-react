@@ -52,7 +52,7 @@ export function TimePicker({
           <Clock className="text-muted-foreground size-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-2" align="start">
+      <PopoverContent className="w-auto p-2" align="start" onWheel={(event) => event.stopPropagation()}>
         <div className="flex gap-1">
           <Column label="Giờ" options={HOURS} selected={hour} onPick={(next) => pick(next, minute)} />
           <Column
@@ -88,7 +88,7 @@ function Column({
   }, []);
 
   return (
-    <div role="listbox" aria-label={label} className="flex h-56 w-14 flex-col gap-0.5 overflow-y-auto pe-1">
+    <div role="listbox" aria-label={label} className="scrollbar-slim flex h-56 w-14 flex-col gap-0.5 overflow-y-auto pe-1">
       {options.map((option) => {
         const active = option === selected;
         return (
