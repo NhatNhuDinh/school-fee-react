@@ -1,0 +1,311 @@
+# Đợt thu: a batch of khoản thu collected from a group of students in one month.
+#
+#   fee_collection_batches          the đợt itself, with the totals the list reads
+#   fee_collection_batch_items      its khoản thu (a snapshot of name and unit, one quantity)
+#   fee_collection_batch_students   its students, with the class they were in then
+#   student_fee_receivables         what each student owes for each khoản thu
+#
+# The three child tables belong to the đợt and go with it (cascade): deleting a đợt
+# that nothing was collected for takes its rows along, and the service refuses once
+# money has been collected. The khoản thu and the enrollment are RESTRICT — a khoản
+# thu or a student somebody is being charged for cannot be deleted from under them.
+databaseChangeLog:
+  - changeSet:
+      id: 039-create-fee-collection-batches
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: fee_collection_batches
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_fee_collection_batches
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batches_organization
+                    references: organizations(id)
+              - column:
+                  name: academic_year_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batches_academic_year
+                    references: academic_years(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collection_month
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scope
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scope_class_group_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_fee_collection_batches_scope_class_group
+                    references: class_groups(id)
+              - column:
+                  name: scope_class_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_fee_collection_batches_scope_class
+                    references: school_classes(id)
+              - column:
+                  name: fee_item_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: student_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receivable_amount
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collected_amount
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: fee_collection_batches
+            columnNames: academic_year_id, name
+            constraintName: uq_fee_collection_batches_year_name
+        - sql:
+            sql: >-
+              ALTER TABLE fee_collection_batches
+              ADD CONSTRAINT ck_fee_collection_batches_month CHECK (collection_month BETWEEN 1 AND 12)
+        - createIndex:
+            tableName: fee_collection_batches
+            indexName: idx_fee_collection_batches_organization
+            columns:
+              - column:
+                  name: organization_id
+        - createIndex:
+            tableName: fee_collection_batches
+            indexName: idx_fee_collection_batches_year_month
+            columns:
+              - column:
+                  name: academic_year_id
+              - column:
+                  name: collection_month
+
+        - createTable:
+            tableName: fee_collection_batch_items
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_fee_collection_batch_items
+              - column:
+                  name: batch_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batch_items_batch
+                    references: fee_collection_batches(id)
+                    deleteCascade: true
+              - column:
+                  name: fee_item_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batch_items_fee_item
+                    references: fee_items(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: int
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sequence
+                  type: int
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: fee_collection_batch_items
+            columnNames: batch_id, fee_item_id
+            constraintName: uq_fee_collection_batch_items_batch_fee_item
+        - sql:
+            sql: >-
+              ALTER TABLE fee_collection_batch_items
+              ADD CONSTRAINT ck_fee_collection_batch_items_quantity CHECK (quantity >= 1)
+        - createIndex:
+            tableName: fee_collection_batch_items
+            indexName: idx_fee_collection_batch_items_fee_item
+            columns:
+              - column:
+                  name: fee_item_id
+
+        - createTable:
+            tableName: fee_collection_batch_students
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_fee_collection_batch_students
+              - column:
+                  name: batch_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batch_students_batch
+                    references: fee_collection_batches(id)
+                    deleteCascade: true
+              - column:
+                  name: enrollment_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batch_students_enrollment
+                    references: student_enrollments(id)
+              - column:
+                  name: class_group_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batch_students_class_group
+                    references: class_groups(id)
+              - column:
+                  name: school_class_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_batch_students_school_class
+                    references: school_classes(id)
+              - column:
+                  name: receivable_amount
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collected_amount
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: fee_collection_batch_students
+            columnNames: batch_id, enrollment_id
+            constraintName: uq_fee_collection_batch_students_batch_enrollment
+        - createIndex:
+            tableName: fee_collection_batch_students
+            indexName: idx_fee_collection_batch_students_enrollment
+            columns:
+              - column:
+                  name: enrollment_id
+        - createIndex:
+            tableName: fee_collection_batch_students
+            indexName: idx_fee_collection_batch_students_class
+            columns:
+              - column:
+                  name: batch_id
+              - column:
+                  name: school_class_id
+
+        - createTable:
+            tableName: student_fee_receivables
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_student_fee_receivables
+              - column:
+                  name: batch_item_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_fee_receivables_batch_item
+                    references: fee_collection_batch_items(id)
+                    deleteCascade: true
+              - column:
+                  name: batch_student_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_fee_receivables_batch_student
+                    references: fee_collection_batch_students(id)
+                    deleteCascade: true
+              - column:
+                  name: unit_price
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: int
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receivable_amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collected_amount
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: student_fee_receivables
+            columnNames: batch_item_id, batch_student_id
+            constraintName: uq_student_fee_receivables_item_student
+        - createIndex:
+            tableName: student_fee_receivables
+            indexName: idx_student_fee_receivables_student
+            columns:
+              - column:
+                  name: batch_student_id
