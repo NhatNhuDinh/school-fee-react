@@ -481,3 +481,10 @@
     display: table-header-group;
   }
 }
+
+/* Edge draws its own reveal (eye) button inside a password field; InputPassword has its
+   own toggle, so without this the two icons sit on top of each other. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
