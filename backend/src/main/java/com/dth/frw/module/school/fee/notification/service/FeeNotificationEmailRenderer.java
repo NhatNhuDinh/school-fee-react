@@ -141,12 +141,12 @@ public class FeeNotificationEmailRenderer {
                 // payment
                 + "<div style=\"margin-top:32px;font-size:14px;font-weight:600;line-height:20px;color:" + INK + "\">Thanh toán bằng chuyển khoản</div>"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" "
-                + "style=\"margin-top:12px;margin-bottom:32px;border:1px solid " + BORDER + ";border-radius:8px;border-collapse:separate\"><tr>"
-                + "<td width=\"156\" valign=\"top\" align=\"center\" style=\"padding:16px 0 16px 16px\">"
+                + "style=\"margin-top:12px;margin-bottom:32px;border-collapse:separate\"><tr>"
+                + "<td width=\"156\" valign=\"top\" align=\"center\" style=\"padding:0 16px 0 0\">"
                 + "<img src=\"" + attr(qrUrl(c)) + "\" width=\"132\" height=\"132\" alt=\"Mã QR thanh toán\" "
-                + "style=\"display:block;width:132px;height:132px;border:1px solid " + BORDER + ";border-radius:6px;background:#ffffff\">"
+                + "style=\"display:block;width:132px;height:132px;background:#ffffff\">"
                 + "<div style=\"margin-top:8px;font-size:12px;line-height:18px;color:" + GREY + "\">Quét mã QR để thanh toán</div></td>"
-                + "<td valign=\"top\" style=\"padding:16px\"><table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\">"
+                + "<td valign=\"top\" style=\"padding:0\"><table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\">"
                 + payRow("Ngân hàng", c.bankCode())
                 + payRow("Số tài khoản", c.bankAccountNumber())
                 + payRow("Chủ tài khoản", c.bankAccountHolder())
