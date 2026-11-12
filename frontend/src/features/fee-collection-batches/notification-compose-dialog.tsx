@@ -11,6 +11,8 @@ import {
 } from "@/domains/fee-notification/types";
 import { API_URL } from "@/shared/api/constants";
 import { DataTablePagination } from "@/shared/components/data-table/data-table-pagination";
+import { DatePicker } from "@/shared/components/form/date-picker";
+import { TimeInput } from "@/shared/components/form/time-input";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -468,15 +470,15 @@ export function NotificationComposeDialog({ batch, onClose, onCreated }: Props) 
                 />
               </Field>
 
-              <div className="grid grid-cols-[1fr_1fr_7rem] gap-3">
+              <div className="grid grid-cols-[1fr_1fr_8rem] gap-3">
                 <Field label="Hạn đóng" error={errors.deadline} required>
-                  <Input type="date" value={deadlineValue} onChange={(event) => setDeadline(event.target.value)} />
+                  <DatePicker value={deadlineValue} onChange={setDeadline} invalid={Boolean(errors.deadline)} />
                 </Field>
                 <Field label="Thời điểm gửi" error={errors.sendAt} required>
-                  <Input type="date" value={sendDate} onChange={(event) => setSendDate(event.target.value)} />
+                  <DatePicker value={sendDate} onChange={setSendDate} invalid={Boolean(errors.sendAt)} />
                 </Field>
                 <Field label="Giờ" required>
-                  <Input type="time" value={sendTime} onChange={(event) => setSendTime(event.target.value)} />
+                  <TimeInput value={sendTime} onChange={(event) => setSendTime(event.target.value)} />
                 </Field>
               </div>
 
