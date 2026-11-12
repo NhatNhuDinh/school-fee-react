@@ -194,7 +194,7 @@ export function ImportDialog({ target, years, onClose, onDone }: Props) {
               </p>
             ) : (
               <Table>
-                <TableHeader className="bg-surface-subtle sticky top-0">
+                <TableHeader className="sticky top-0">
                   <TableRow>
                     <TableHead className="w-10 ps-4">
                       <Checkbox

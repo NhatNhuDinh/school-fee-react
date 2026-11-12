@@ -367,8 +367,8 @@ function StudentsTab({
       >
         <TableHeader sticky>
           <TableRow>
-            <TableHead className="bg-surface-subtle sticky left-0 z-20 w-14 min-w-14 ps-5">STT</TableHead>
-            <TableHead className="bg-surface-subtle sticky left-14 z-20 min-w-60">Học sinh</TableHead>
+            <TableHead className="sticky left-0 z-20 w-14 min-w-14 ps-5">STT</TableHead>
+            <TableHead className="sticky left-14 z-20 min-w-60">Học sinh</TableHead>
             <TableHead className="w-24">Lớp</TableHead>
             {(items ?? []).map((item) => (
               <TableHead key={item.id} className="w-[140px] text-end">
