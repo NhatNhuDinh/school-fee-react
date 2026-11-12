@@ -1,0 +1,92 @@
+# Khối lớp (per school year) and the lớp inside each. A name is unique within its
+# year, and a lớp's name within its khối lớp, as the Jmix application's
+# constraints said. A lớp goes with its khối lớp, which the Jmix model called a
+# composition.
+databaseChangeLog:
+  - changeSet:
+      id: 029-create-class-groups
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: class_groups
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_class_groups
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_class_groups_organization
+                    references: organizations(id)
+              - column:
+                  name: academic_year_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_class_groups_academic_year
+                    references: academic_years(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: class_groups
+            columnNames: academic_year_id, name
+            constraintName: uq_class_groups_year_name
+        - createTable:
+            tableName: school_classes
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_school_classes
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_school_classes_organization
+                    references: organizations(id)
+              - column:
+                  name: class_group_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_school_classes_class_group
+                    references: class_groups(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: school_classes
+            columnNames: class_group_id, name
+            constraintName: uq_school_classes_group_name

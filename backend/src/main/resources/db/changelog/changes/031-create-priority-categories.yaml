@@ -1,0 +1,80 @@
+# Diện ưu tiên (priority categories) of a school year: a discount and the part of
+# the year it applies to. A name is unique within its year, as the Jmix
+# application's constraint said. `from_month` and `to_month` are set only for a
+# custom period.
+databaseChangeLog:
+  - changeSet:
+      id: 031-create-priority-categories
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: priority_categories
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_priority_categories
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_priority_categories_organization
+                    references: organizations(id)
+              - column:
+                  name: academic_year_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_priority_categories_academic_year
+                    references: academic_years(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: discount_type
+                  type: varchar(50)
+                  defaultValue: PERCENT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: discount_value
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: application_period
+                  type: varchar(50)
+                  defaultValue: FULL_YEAR
+                  constraints:
+                    nullable: false
+              - column:
+                  name: from_month
+                  type: integer
+              - column:
+                  name: to_month
+                  type: integer
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: priority_categories
+            columnNames: academic_year_id, name
+            constraintName: uq_priority_categories_year_name
+        - sql:
+            sql: >
+              ALTER TABLE priority_categories
+              ADD CONSTRAINT ck_priority_categories_months
+              CHECK ((from_month IS NULL OR from_month BETWEEN 1 AND 12)
+                 AND (to_month IS NULL OR to_month BETWEEN 1 AND 12))

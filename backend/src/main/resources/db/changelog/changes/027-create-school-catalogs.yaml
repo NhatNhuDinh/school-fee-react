@@ -1,0 +1,81 @@
+# The two catalogues a school shares across all of its years: training systems
+# and measurement units. Each is a name, unique within its school, which is what
+# the Jmix application's tenant-and-name constraint said.
+databaseChangeLog:
+  - changeSet:
+      id: 027-create-school-catalogs
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: training_systems
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_training_systems
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_training_systems_organization
+                    references: organizations(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: training_systems
+            columnNames: organization_id, name
+            constraintName: uq_training_systems_organization_name
+        - createTable:
+            tableName: measurement_units
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_measurement_units
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_measurement_units_organization
+                    references: organizations(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: measurement_units
+            columnNames: organization_id, name
+            constraintName: uq_measurement_units_organization_name
+      rollback:
+        - dropTable:
+            tableName: measurement_units
+        - dropTable:
+            tableName: training_systems
