@@ -138,7 +138,7 @@ public class FeeNotificationDispatcher {
             String html = renderer.render(context, logo == null ? null : "cid:" + FeeNotificationEmailRenderer.LOGO_CONTENT_ID);
 
             MimeMessage message = sender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_RELATED, "UTF-8");
             helper.setFrom(new InternetAddress(fromAddress(), notification.schoolName(), "UTF-8"));
             helper.setTo(recipient.email());
             helper.setSubject(notification.subject());
