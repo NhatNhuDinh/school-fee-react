@@ -657,7 +657,7 @@ export function getPinnedClasses<TData>({
     "bg-card",
     // A pinned *header* cell has to stay on the header band, or the frozen
     // column shows a white stripe through an otherwise tinted strip.
-    "[&[data-slot=table-head]]:bg-surface-subtle",
+    "[&[data-slot=table-head]]:bg-table-header",
     // Opaque on purpose. The row's own hover and selected tints are translucent
     // washes (`accent/40`, `accent/60`), which is fine on a cell that has
     // nothing scrolling under it — but a frozen cell sits *on top of* the

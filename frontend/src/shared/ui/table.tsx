@@ -136,7 +136,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        "text-overline text-muted-foreground bg-surface-subtle",
+        "text-overline text-table-header-foreground bg-table-header",
         "h-11 px-3 align-middle whitespace-nowrap",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         ALIGN[align],

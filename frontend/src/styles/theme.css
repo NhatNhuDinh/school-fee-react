@@ -207,6 +207,11 @@
      panel that has to be told apart from the sheet it sits on. */
   --surface-subtle: oklch(0.982 0.005 var(--preset-h));
 
+  /* A table's header row takes the brand hue, so it follows the colour picked in the
+     customiser the way the sidebar does; surface-subtle stays the neutral strip. */
+  --table-header: oklch(0.94 calc(var(--preset-c) * 0.4) var(--preset-h));
+  --table-header-foreground: oklch(0.36 calc(var(--preset-c) * 0.7) var(--preset-h));
+
   --primary: oklch(var(--preset-l) var(--preset-c) var(--preset-h));
   --primary-foreground: var(--preset-on, oklch(0.99 0.002 var(--preset-h)));
   /* Hover on a solid brand surface: one step lighter, not an opacity fade — a
@@ -314,6 +319,9 @@
   --popover-foreground: oklch(0.955 0.008 var(--preset-h));
 
   --surface-subtle: oklch(0.225 0.02 var(--preset-h));
+
+  --table-header: oklch(0.28 calc(var(--preset-c-dark) * 0.5) var(--preset-h));
+  --table-header-foreground: oklch(0.86 calc(var(--preset-c-dark) * 0.35) var(--preset-h));
 
   --primary: oklch(var(--preset-l-dark) var(--preset-c-dark) var(--preset-h));
   --primary-foreground: oklch(0.14 0.02 var(--preset-h));

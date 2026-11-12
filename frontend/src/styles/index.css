@@ -21,6 +21,8 @@
   /* The step between the card and the page: table headers, toolbar strips,
      inset panels. */
   --color-surface-subtle: var(--surface-subtle);
+  --color-table-header: var(--table-header);
+  --color-table-header-foreground: var(--table-header-foreground);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
