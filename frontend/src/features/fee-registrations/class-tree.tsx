@@ -82,7 +82,7 @@ export function ClassTree({ academicYearId, selectedClassId, onSelect, className
                   className={cn(
                     "flex cursor-pointer items-center justify-between gap-2 py-2 ps-10 pe-4 text-sm",
                     "hover:bg-accent/50 focus-visible:bg-accent/50 outline-none",
-                    active && "bg-primary/10 text-primary font-medium"
+                    active && "bg-primary/10 text-primary font-semibold"
                   )}
                 >
                   <span className="truncate">{klass.name}</span>

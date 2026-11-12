@@ -18,7 +18,6 @@ import { useConfirmDiscard } from "@/shared/components/form/unsaved-changes-guar
 import { ListView, ListViewHeader } from "@/shared/components/views/list-view";
 import { customResult } from "@/shared/hooks/use-custom-result";
 import { formatCurrency } from "@/shared/lib/format";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
@@ -158,8 +157,6 @@ function RegistrationOfYear({ yearId }: { yearId: number }) {
   const pageCount = Math.max(1, Math.ceil(students.length / pageSize));
   const pageRows = students.slice((page - 1) * pageSize, page * pageSize);
 
-  // "41 lượt · 18/32 học sinh", over the whole lớp rather than the rows on screen.
-  const registeredStudents = new Set([...ticks].map((key) => key.split(":")[0])).size;
 
   return (
     // One screen tall, so the pager stays on screen and only the rows scroll — see
@@ -192,16 +189,6 @@ function RegistrationOfYear({ yearId }: { yearId: number }) {
             <Hint>Đang tải…</Hint>
           ) : (
             <>
-              <div className="flex shrink-0 items-center justify-between gap-4 border-b px-5 py-3.5">
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-lg font-semibold">Lớp {matrix.schoolClass.name}</h2>
-                  <Badge variant="neutral">{matrix.students.length} học sinh</Badge>
-                </div>
-                <span className="text-muted-foreground text-sm tabular-nums">
-                  Đã đăng ký {ticks.size} lượt · {registeredStudents}/{matrix.students.length} học sinh
-                </span>
-              </div>
-
               <div className="flex shrink-0 items-center gap-2 px-4 py-2.5">
                 <div className="relative min-w-0 flex-1">
                   <Search className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2" />
