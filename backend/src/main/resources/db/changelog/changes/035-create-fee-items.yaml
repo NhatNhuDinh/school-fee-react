@@ -1,0 +1,270 @@
+# Khoản thu (fee items) of a school year, with the price list and the collection
+# dates that belong to each. A name is unique within its year, as the Jmix
+# application constraint said. The two child tables are owned by the item and go
+# with it; everything else they point at is RESTRICT, so a khối lớp, lớp, đơn vị
+# tính or giai đoạn still in use cannot be deleted from under a khoản thu.
+databaseChangeLog:
+  - changeSet:
+      id: 035-create-fee-items
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: fee_items
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_fee_items
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_items_organization
+                    references: organizations(id)
+              - column:
+                  name: academic_year_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_items_academic_year
+                    references: academic_years(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scope
+                  type: varchar(50)
+                  defaultValue: ALL_SCHOOL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scope_class_group_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_fee_items_scope_class_group
+                    references: class_groups(id)
+              - column:
+                  name: scope_class_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_fee_items_scope_class
+                    references: school_classes(id)
+              - column:
+                  name: price_mode
+                  type: varchar(50)
+                  defaultValue: SINGLE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: base_price
+                  type: numeric(19,2)
+              - column:
+                  name: measurement_unit_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_items_measurement_unit
+                    references: measurement_units(id)
+              - column:
+                  name: vat_rate
+                  type: numeric(5,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nature
+                  type: varchar(50)
+                  defaultValue: REGULAR
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collection_cycle
+                  type: varchar(50)
+                  defaultValue: MONTHLY
+                  constraints:
+                    nullable: false
+              - column:
+                  name: discount_eligible
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mandatory
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: service_fee
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: refundable
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: invoice_enabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receipt_enabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: internal_collection
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: invoice_rate
+                  type: numeric(5,2)
+                  defaultValueNumeric: 100
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: fee_items
+            columnNames: academic_year_id, name
+            constraintName: uq_fee_items_year_name
+        - createIndex:
+            tableName: fee_items
+            indexName: idx_fee_items_organization
+            columns:
+              - column:
+                  name: organization_id
+        - sql:
+            sql: >
+              ALTER TABLE fee_items
+              ADD CONSTRAINT ck_fee_items_amounts
+              CHECK (vat_rate BETWEEN 0 AND 100
+                 AND invoice_rate BETWEEN 0 AND 100
+                 AND (base_price IS NULL OR base_price >= 0))
+        - sql:
+            sql: >
+              ALTER TABLE fee_items
+              ADD CONSTRAINT ck_fee_items_scope
+              CHECK ((scope = 'CLASS_GROUP') = (scope_class_group_id IS NOT NULL)
+                 AND (scope = 'CLASS') = (scope_class_id IS NOT NULL))
+
+        - createTable:
+            tableName: fee_item_prices
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_fee_item_prices
+              - column:
+                  name: fee_item_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_item_prices_fee_item
+                    references: fee_items(id)
+                    deleteCascade: true
+              - column:
+                  name: class_group_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_item_prices_class_group
+                    references: class_groups(id)
+              - column:
+                  name: area_name
+                  type: varchar(100)
+              - column:
+                  name: amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: fee_item_prices
+            indexName: idx_fee_item_prices_fee_item
+            columns:
+              - column:
+                  name: fee_item_id
+        - createIndex:
+            tableName: fee_item_prices
+            indexName: idx_fee_item_prices_class_group
+            columns:
+              - column:
+                  name: class_group_id
+        - sql:
+            sql: >
+              ALTER TABLE fee_item_prices
+              ADD CONSTRAINT ck_fee_item_prices_amount CHECK (amount >= 0)
+
+        - createTable:
+            tableName: fee_collection_schedules
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_fee_collection_schedules
+              - column:
+                  name: fee_item_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_fee_collection_schedules_fee_item
+                    references: fee_items(id)
+                    deleteCascade: true
+              - column:
+                  name: sequence
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collection_month
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: academic_period_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_fee_collection_schedules_period
+                    references: academic_periods(id)
+        - addUniqueConstraint:
+            tableName: fee_collection_schedules
+            columnNames: fee_item_id, sequence
+            constraintName: uq_fee_collection_schedules_item_sequence
+        - sql:
+            sql: >
+              ALTER TABLE fee_collection_schedules
+              ADD CONSTRAINT ck_fee_collection_schedules_month
+              CHECK (collection_month BETWEEN 1 AND 12 AND sequence >= 1)

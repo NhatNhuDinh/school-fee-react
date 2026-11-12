@@ -1,0 +1,137 @@
+# Students of a school, and their enrollment in each school year. A student code
+# is unique within the school, as is a personal id when there is one. A student
+# has at most one enrollment per year; deleting an enrollment's class, training
+# system or source leaves the enrollment standing.
+databaseChangeLog:
+  - changeSet:
+      id: 033-create-students
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: students
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_students
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_students_organization
+                    references: organizations(id)
+              - column: { name: student_code, type: "varchar(100)", constraints: { nullable: false } }
+              - column: { name: full_name, type: "varchar(255)", constraints: { nullable: false } }
+              - column: { name: date_of_birth, type: date }
+              - column: { name: gender, type: "varchar(20)" }
+              - column: { name: personal_id, type: "varchar(50)" }
+              - column: { name: passport_number, type: "varchar(50)" }
+              - column: { name: statistic_code, type: "varchar(100)" }
+              - column: { name: admission_year, type: integer }
+              - column: { name: health_insurance_code, type: "varchar(50)" }
+              - column: { name: province, type: "varchar(255)" }
+              - column: { name: district, type: "varchar(255)" }
+              - column: { name: ward, type: "varchar(255)" }
+              - column: { name: area, type: "varchar(255)" }
+              - column: { name: house_number, type: "varchar(100)" }
+              - column: { name: hamlet, type: "varchar(255)" }
+              - column: { name: address, type: "varchar(1000)" }
+              - column: { name: guardian_name, type: "varchar(255)" }
+              - column: { name: guardian_phone, type: "varchar(50)" }
+              - column: { name: guardian_email, type: "varchar(255)" }
+              - column: { name: bank_name, type: "varchar(255)" }
+              - column: { name: bank_account_holder, type: "varchar(255)" }
+              - column: { name: bank_account_number, type: "varchar(100)" }
+              - column:
+                  name: needs_invoice
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column: { name: updated_at, type: timestamp with time zone }
+        - addUniqueConstraint:
+            tableName: students
+            columnNames: organization_id, student_code
+            constraintName: uq_students_organization_code
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_students_organization_personal_id
+              ON students (organization_id, personal_id)
+              WHERE personal_id IS NOT NULL
+        - createTable:
+            tableName: student_enrollments
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_student_enrollments
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_enrollments_organization
+                    references: organizations(id)
+              - column:
+                  name: student_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_enrollments_student
+                    references: students(id)
+                    deleteCascade: true
+              - column:
+                  name: academic_year_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_enrollments_academic_year
+                    references: academic_years(id)
+              - column:
+                  name: school_class_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_student_enrollments_school_class
+                    references: school_classes(id)
+              - column:
+                  name: training_system_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_student_enrollments_training_system
+                    references: training_systems(id)
+              - column:
+                  name: source_enrollment_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_student_enrollments_source
+                    references: student_enrollments(id)
+                    deleteCascade: false
+              - column: { name: transfer_in_date, type: date }
+              - column: { name: note, type: "varchar(1000)" }
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column: { name: updated_at, type: timestamp with time zone }
+        - addUniqueConstraint:
+            tableName: student_enrollments
+            columnNames: academic_year_id, student_id
+            constraintName: uq_student_enrollments_year_student
+        - createIndex:
+            tableName: student_enrollments
+            indexName: idx_student_enrollments_class
+            columns:
+              - column: { name: school_class_id }

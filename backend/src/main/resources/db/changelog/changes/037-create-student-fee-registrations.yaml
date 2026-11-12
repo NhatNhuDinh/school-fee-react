@@ -1,0 +1,69 @@
+# Which optional khoản thu each student is registered for. One row per (enrollment,
+# khoản thu); its existence is the registration. A registration belongs to the
+# enrollment, so it goes with it (cascade) — a student removed from a year takes
+# their registrations along. The khoản thu is RESTRICT: one somebody is registered
+# for cannot be deleted from under them.
+databaseChangeLog:
+  - changeSet:
+      id: 037-create-student-fee-registrations
+      author: school-fee
+      changes:
+        - createTable:
+            tableName: student_fee_registrations
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_student_fee_registrations
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_fee_registrations_organization
+                    references: organizations(id)
+              - column:
+                  name: enrollment_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_fee_registrations_enrollment
+                    references: student_enrollments(id)
+                    deleteCascade: true
+              - column:
+                  name: fee_item_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_student_fee_registrations_fee_item
+                    references: fee_items(id)
+              - column:
+                  name: source
+                  type: varchar(50)
+                  defaultValue: SCHOOL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: student_fee_registrations
+            columnNames: enrollment_id, fee_item_id
+            constraintName: uq_student_fee_registrations_enrollment_fee_item
+        - createIndex:
+            tableName: student_fee_registrations
+            indexName: idx_student_fee_registrations_fee_item
+            columns:
+              - column:
+                  name: fee_item_id
+        - createIndex:
+            tableName: student_fee_registrations
+            indexName: idx_student_fee_registrations_organization
+            columns:
+              - column:
+                  name: organization_id
