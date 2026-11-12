@@ -311,7 +311,7 @@ public class FeeNotificationService implements FeeCollectionBatchLock {
         if (snapshot == null) {
             throw new ResourceNotFoundException("học sinh trong đợt thu", batchStudentId);
         }
-        String orderCode = paymentProperties.orderCodePrefix().toUpperCase(Locale.ROOT) + "-XXXXXXXXXXXXXX";
+        String orderCode = sampleOrderCode(batchStudentId);
         LocalDate due = deadline != null ? deadline : LocalDate.now(properties.zone()).plusDays(14);
         MailContext context = context(batch, snapshot, orEmpty(subject), orEmpty(content), due, orderCode,
                 snapshot.total(), paymentSnapshot());
@@ -586,9 +586,18 @@ public class FeeNotificationService implements FeeCollectionBatchLock {
     }
 
     private String newOrderCode() {
+        return orderCode(random);
+    }
+
+    /** A code of the shape real ones have, from a generator that is the same every time it is seeded. */
+    private String sampleOrderCode(long seed) {
+        return orderCode(new java.util.Random(seed));
+    }
+
+    private String orderCode(java.util.Random source) {
         StringBuilder code = new StringBuilder(paymentProperties.orderCodePrefix().toUpperCase(Locale.ROOT)).append('-');
         for (int i = 0; i < ORDER_SUFFIX_LENGTH; i++) {
-            code.append(ORDER_ALPHABET.charAt(random.nextInt(ORDER_ALPHABET.length())));
+            code.append(ORDER_ALPHABET.charAt(source.nextInt(ORDER_ALPHABET.length())));
         }
         return code.toString();
     }
