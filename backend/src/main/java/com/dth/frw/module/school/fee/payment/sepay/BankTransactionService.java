@@ -257,13 +257,18 @@ public class BankTransactionService {
         };
     }
 
+    /**
+     * Whose a line is when nothing matched it. A deployment is one school's, so normally the only school there is;
+     * {@code school-fee.sepay.organization-code} names one explicitly for a database that holds several.
+     */
     private Long defaultOrganization() {
         String code = sepay.organizationCode();
-        if (code == null || code.isBlank()) {
-            return null;
+        if (code != null && !code.isBlank()) {
+            List<Long> named = jdbc.queryForList("select id from organizations where code = ?", Long.class, code.trim());
+            return named.isEmpty() ? null : named.get(0);
         }
-        List<Long> ids = jdbc.queryForList("select id from organizations where code = ?", Long.class, code.trim());
-        return ids.isEmpty() ? null : ids.get(0);
+        List<Long> all = jdbc.queryForList("select id from organizations limit 2", Long.class);
+        return all.size() == 1 ? all.get(0) : null;
     }
 
     /** Every order code in the memo or in the code SePay extracted, however the bank punctuated it. */

@@ -461,7 +461,7 @@ An endpoint read through a custom request (`useCustom`) cannot use the data prov
 
 `SepayClient` reads SePay's v2 list-transactions API for **"Kiểm tra giao dịch"**, the catch-up for a lost webhook. The two sources identify a line differently (integer vs UUID), which is why the dedupe key is built from the line's content. Review screen: `/fee_payments/review` (needs `fee_payments:write` to assign, ignore or check). The assign dialog still refuses anything that does not add up to the line's amount.
 
-Configuration lives in `backend/config/application.properties` (git-ignored) or the environment: `school-fee.sepay.webhook.api-key` (what SePay sends), `school-fee.sepay.webhook.hmac-secret`, `school-fee.sepay.api-token` (for the check), `school-fee.sepay.organization-code` (which school unmatched lines are filed under — an account belongs to one school), and the bank account under `school-fee.payment.bank-account.*`. SePay only delivers to a public HTTPS URL, so the webhook is exercised locally with `curl` and for real on staging.
+Configuration lives in `backend/config/application.properties` (git-ignored) or the environment: `school-fee.sepay.webhook.api-key` (what SePay sends), `school-fee.sepay.webhook.hmac-secret`, `school-fee.sepay.api-token` (for the check), `school-fee.sepay.organization-code` (optional: which school unmatched lines are filed under; a self-hosted deployment holds one school and it is found by itself), and the bank account under `school-fee.payment.bank-account.*`. SePay only delivers to a public HTTPS URL, so the webhook is exercised locally with `curl` and for real on staging.
 
 ### What is deliberately not built yet
 
