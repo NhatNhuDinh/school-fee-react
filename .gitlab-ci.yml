@@ -31,6 +31,9 @@
 #                        bundle, so a new domain needs a new pipeline
 #     SMTP_USERNAME, SMTP_PASSWORD (Masked)
 #     BANK_ACCOUNT_NUMBER, BANK_NAME, BANK_ACCOUNT_HOLDER
+#     SEPAY_WEBHOOK_API_KEY  (Masked) the API Key set on the SePay webhook; the
+#                        backend answers SePay 503 until it is set, and 401
+#                        when it differs from the one SePay sends
 #   Access:
 #     SSH_DEPLOY_KEY  (File) private key of ubuntu@174, edupay's own, comment
 #                     "gitlab-ci edupay" in authorized_keys
@@ -123,7 +126,7 @@ deploy-174:
       # never on a command line, so they show in no log or process list.
       {
         for v in POSTGRES_PASSWORD JWT_SECRET PUBLIC_ORIGIN SMTP_USERNAME SMTP_PASSWORD \
-                 BANK_ACCOUNT_NUMBER BANK_NAME BANK_ACCOUNT_HOLDER; do
+                 BANK_ACCOUNT_NUMBER BANK_NAME BANK_ACCOUNT_HOLDER SEPAY_WEBHOOK_API_KEY; do
           eval "val=\${$v:-}"
           [ -z "$val" ] || printf '%s=%s\n' "$v" "$val"
         done

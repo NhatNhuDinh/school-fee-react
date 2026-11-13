@@ -9,6 +9,8 @@
 #                      the fee notices (host and port: application.properties)
 #   BANK_ACCOUNT_NUMBER, BANK_NAME, BANK_ACCOUNT_HOLDER   receiving account on
 #                      payment slips and the VietQR image
+#   SEPAY_WEBHOOK_API_KEY   what SePay sends as "Authorization: Apikey <key>" to
+#                      POST /api/sepay/webhook; unset, the webhook answers 503
 #   BACKEND_IMAGE, FRONTEND_IMAGE  the images of this deploy
 #
 # Separate from the old Jmix school-fee app (container school-fee, port 8092),
@@ -59,6 +61,8 @@ services:
       SCHOOLFEE_PAYMENT_BANKACCOUNT_NUMBER: ${BANK_ACCOUNT_NUMBER:-}
       SCHOOLFEE_PAYMENT_BANKACCOUNT_BANK: ${BANK_NAME:-}
       SCHOOLFEE_PAYMENT_BANKACCOUNT_HOLDER: ${BANK_ACCOUNT_HOLDER:-}
+      # school-fee.sepay.webhook.api-key: authenticates SePay's calls to the webhook
+      SCHOOLFEE_SEPAY_WEBHOOK_APIKEY: ${SEPAY_WEBHOOK_API_KEY:-}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -Dfile.encoding=UTF-8
     healthcheck:
