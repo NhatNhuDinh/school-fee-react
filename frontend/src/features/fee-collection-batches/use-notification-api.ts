@@ -132,5 +132,5 @@ export async function fetchCandidateIds(
 ): Promise<CandidateIdAmount[]> {
   const searchParams: Record<string, string | number> = { ...viewQuery(batchId, view) };
   if (owingOnly) searchParams.owing = 1;
-  return kyInstance.get(`${API_URL}/fee_notifications/candidate-ids`, { searchParams }).json<CandidateIdAmount[]>();
+  return kyInstance.get("fee_notifications/candidate-ids", { searchParams }).json<CandidateIdAmount[]>();
 }

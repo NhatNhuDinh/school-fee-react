@@ -365,10 +365,10 @@ function StudentsTab({
         containerClassName="min-h-0 flex-1 overflow-y-auto"
         style={{ minWidth: 580 + (items?.length ?? 0) * 140 }}
       >
-        <TableHeader sticky>
+        <TableHeader sticky className="z-30">
           <TableRow>
-            <TableHead className="sticky left-0 z-20 w-14 min-w-14 ps-5">STT</TableHead>
-            <TableHead className="sticky left-14 z-20 min-w-60">Học sinh</TableHead>
+            <TableHead className="sticky top-0 left-0 z-20 w-14 min-w-14 ps-5">STT</TableHead>
+            <TableHead className="sticky top-0 left-14 z-20 min-w-60">Học sinh</TableHead>
             <TableHead className="w-24">Lớp</TableHead>
             {(items ?? []).map((item) => (
               <TableHead key={item.id} className="w-[140px] text-end">
