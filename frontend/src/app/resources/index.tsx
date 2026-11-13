@@ -117,8 +117,8 @@ export const resources: ResourceProps[] = [
     },
   },
   {
-    name: "fee_collection_payments",
-    list: "/fee_collection_payments",
+    name: "fee_payments",
+    list: "/fee_payments",
     meta: {
       label: "Thu tiền",
       icon: <Banknote className="h-4 w-4" />,

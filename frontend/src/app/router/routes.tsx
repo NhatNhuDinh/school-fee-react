@@ -36,6 +36,7 @@ import {
   FeeCollectionBatchList,
   FeeCollectionBatchShow,
 } from "@/features/fee-collection-batches";
+import { FeePaymentPage, PaymentHistory } from "@/features/fee-payments";
 import { FeeItemList } from "@/features/fee-items";
 import { FeeRegistrationPage } from "@/features/fee-registrations";
 import { StudentList } from "@/features/students";
@@ -228,6 +229,21 @@ export function AppRoutes() {
         >
           <Route index element={<FeeCollectionBatchList />} />
           <Route path="show/:id" element={<FeeCollectionBatchShow />} />
+        </Route>
+        <Route
+          path="/fee_payments"
+          element={
+            <CanAccess
+              resource="fee_payments"
+              action="list"
+              fallback={<Forbidden resource="fee_payments" />}
+            >
+              <Outlet />
+            </CanAccess>
+          }
+        >
+          <Route index element={<FeePaymentPage />} />
+          <Route path="history" element={<PaymentHistory />} />
         </Route>
         <Route
           path="/training_systems"

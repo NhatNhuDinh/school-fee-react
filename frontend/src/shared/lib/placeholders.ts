@@ -12,4 +12,4 @@
  * `app/router/routes.tsx` (the placeholder route) and `shared/lib/permissions.ts`
  * (these have no permission codes yet, so they must not be hidden for lack of one).
  */
-export const PLACEHOLDER_RESOURCES = ["fee_collection_payments"] as const;
+export const PLACEHOLDER_RESOURCES: readonly string[] = [];
