@@ -802,6 +802,12 @@ public class FeeCollectionBatchService {
 
     /** Recomputes the totals from the receivables, then clears the context so the next read sees them. */
     private void recompute(Long batchId) {
+        refreshTotals(batchId);
+    }
+
+    /** Rewrites the totals of a đợt from its receivables; the payment feature calls it after each receipt. */
+    @Transactional
+    public void refreshTotals(Long batchId) {
         em.flush();
         jdbc.update("""
                 update fee_collection_batch_students s set
