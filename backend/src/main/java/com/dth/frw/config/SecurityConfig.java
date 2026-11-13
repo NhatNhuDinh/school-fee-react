@@ -96,6 +96,8 @@ public class SecurityConfig {
                         // things you must be able to do without a valid access
                         // token. Everything else needs one.
                         .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        // SePay calls this one with no session; the controller authenticates the call itself.
+                        .requestMatchers(HttpMethod.POST, "/api/sepay/webhook").permitAll()
                         // The WebSocket handshake, and only the handshake. The
                         // browser cannot put an Authorization header on it, so
                         // there is nothing here for this chain to check;
