@@ -1,0 +1,103 @@
+# Runs on 10.123.123.174 in /home/ubuntu/app/edupay; the deploy job copies this
+# file there and rewrites the .env next to it (chmod 600) from the project's
+# CI/CD variables on every deploy (see .gitlab-ci.yml):
+#   POSTGRES_PASSWORD  password of the edupay database user; used by Postgres
+#                      only when the data directory is first created
+#   JWT_SECRET         signs access tokens, at least 32 bytes
+#   PUBLIC_ORIGIN      the address users open; CORS and the /ws endpoint
+#   SMTP_USERNAME, SMTP_PASSWORD   Gmail account and app password that send
+#                      the fee notices (host and port: application.properties)
+#   BANK_ACCOUNT_NUMBER, BANK_NAME, BANK_ACCOUNT_HOLDER   receiving account on
+#                      payment slips and the VietQR image
+#   BACKEND_IMAGE, FRONTEND_IMAGE  the images of this deploy
+#
+# Separate from the old Jmix school-fee app (container school-fee, port 8092),
+# which this stack does not touch.
+name: edupay
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: edupay-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: edupay
+      POSTGRES_USER: edupay
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edupay -d edupay"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+    cpus: 1.0
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=50"]
+
+  backend:
+    image: ${BACKEND_IMAGE:?missing BACKEND_IMAGE}
+    container_name: edupay-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/edupay
+      SPRING_DATASOURCE_USERNAME: edupay
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "10"
+      APP_SECURITY_JWT_SECRET: ${JWT_SECRET:?missing JWT_SECRET}
+      # Read by both the CORS filter and the /ws endpoint
+      APP_CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?missing PUBLIC_ORIGIN}
+      # Unset leaves the notices unsent, each recipient failing with
+      # "SMTP chưa được cấu hình"; the rest of the app runs
+      SPRING_MAIL_USERNAME: ${SMTP_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD:-}
+      # school-fee.payment.bank-account.* of application.properties. An unset
+      # variable still arrives as an empty value and blanks the sample account
+      # written there, so slips then go out without an account or VietQR
+      SCHOOLFEE_PAYMENT_BANKACCOUNT_NUMBER: ${BANK_ACCOUNT_NUMBER:-}
+      SCHOOLFEE_PAYMENT_BANKACCOUNT_BANK: ${BANK_NAME:-}
+      SCHOOLFEE_PAYMENT_BANKACCOUNT_HOLDER: ${BANK_ACCOUNT_HOLDER:-}
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -Dfile.encoding=UTF-8
+    healthcheck:
+      # /actuator/health needs a signed-in caller, so only check that Tomcat
+      # has opened its port
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # Liquibase builds the whole schema on an empty database
+      start_period: 180s
+    mem_limit: 1g
+    cpus: 1.5
+    pids_limit: 300
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?missing FRONTEND_IMAGE}
+    container_name: edupay-frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    ports:
+      # Internal interface only: a bare "8113:80" would also open the port on
+      # the server's public address
+      - "10.123.123.174:8113:80"
+    # app-network is where the shared Nginx Proxy Manager (container `npm`)
+    # lives: a proxy host for a public domain forwards to edupay-frontend:80
+    # by name. default keeps the route to the backend.
+    networks: [default, app-network]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    mem_limit: 128m
+    cpus: 0.5
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    external: true

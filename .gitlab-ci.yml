@@ -1,0 +1,202 @@
+# Delivery of edupay, on every push to develop (merging an MR is such a push):
+#
+#   build-backend, build-frontend
+#                 174's own Docker builds deploy/*.Dockerfile (its layer cache
+#                 and cache mounts survive between pipelines, so Gradle and tsc
+#                 redo only what changed) and pushes both images to Harbor
+#                 artifacts.dth.com.vn/mrha-team/edupay-*, tagged with the
+#                 commit. The Harbor project keeps the 3 newest images of each
+#                 repository.
+#   deploy-174    SSH into 10.123.123.174, write .env from the CI/CD variables,
+#                 back up the database, pull the new images and
+#                 `docker compose up -d` in /home/ubuntu/app/edupay; green only
+#                 once the backend answers through nginx
+#
+# Runner: vsmt-build on 174 (container gitlab-runner-vsmt), shared with the two
+# vsmt projects. It reaches 174's Docker through the socket, so it takes jobs
+# of protected branches only: develop is protected, Developers may push and
+# merge.
+#
+# Settings > CI/CD > Variables (Maintainer), Protected, since only the
+# protected develop branch deploys. Change a value there and re-run the
+# develop pipeline; nobody edits the server's .env.
+#   App settings, written to .env on every deploy (deploy/docker-compose.yml
+#   says what each one does). An empty or missing variable keeps the line of
+#   the same name already in .env:
+#     POSTGRES_PASSWORD  (Masked) used only when the database is first created;
+#                        changing it here without changing it in Postgres
+#                        breaks the backend's connection
+#     JWT_SECRET         (Masked) at least 32 bytes; changing it signs everyone out
+#     PUBLIC_ORIGIN      optional, default below; also baked into the frontend
+#                        bundle, so a new domain needs a new pipeline
+#     SMTP_USERNAME, SMTP_PASSWORD (Masked)
+#     BANK_ACCOUNT_NUMBER, BANK_NAME, BANK_ACCOUNT_HOLDER
+#   Access:
+#     SSH_DEPLOY_KEY  (File) private key of ubuntu@174, edupay's own, comment
+#                     "gitlab-ci edupay" in authorized_keys
+#     HARBOR_ROBOT_USER, HARBOR_ROBOT_PASSWORD  robot$mrha-team+ci (raw: the
+#                     name has a $), pushes the images. 174 itself is logged
+#                     in to Harbor as robot$mrha-team+pull, which only pulls.
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE != "merge_request_event"
+
+default:
+  tags:
+    - vsmt-build
+  interruptible: true
+
+variables:
+  # The Dockerfiles need only the files of this commit
+  GIT_DEPTH: "1"
+  PUBLIC_ORIGIN: "https://edupay.x2h.com.vn"
+  HARBOR: "artifacts.dth.com.vn"
+  IMAGE_BASE: "artifacts.dth.com.vn/mrha-team/edupay"
+  BACKEND_IMAGE: "$IMAGE_BASE-backend:$CI_COMMIT_SHORT_SHA"
+  FRONTEND_IMAGE: "$IMAGE_BASE-frontend:$CI_COMMIT_SHORT_SHA"
+  DEPLOY_HOST: "10.123.123.174"
+  DEPLOY_USER: "ubuntu"
+  DEPLOY_PATH: "/home/ubuntu/app/edupay"
+  # Images of each kind kept on the server: only the running one. Harbor keeps
+  # the 3 newest; rolling back pulls the older one from there.
+  KEEP_IMAGES: "1"
+
+.docker-build:
+  stage: build
+  image: docker:28-cli
+  before_script:
+    # The login stays in this job's container; 174's own login is the pull robot.
+    - printf '%s' "$HARBOR_ROBOT_PASSWORD" | docker login "$HARBOR" -u "$HARBOR_ROBOT_USER" --password-stdin
+
+build-backend:
+  extends: .docker-build
+  script:
+    - docker build
+        --file deploy/backend.Dockerfile
+        --tag "$BACKEND_IMAGE"
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+        .
+    - docker push "$BACKEND_IMAGE"
+
+build-frontend:
+  extends: .docker-build
+  script:
+    - docker build
+        --file deploy/frontend.Dockerfile
+        --build-arg "VITE_API_URL=$PUBLIC_ORIGIN/api"
+        --tag "$FRONTEND_IMAGE"
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+        .
+    - docker push "$FRONTEND_IMAGE"
+
+deploy-174:
+  stage: deploy
+  image: alpine:3.22
+  needs: [build-backend, build-frontend]
+  # Two pipelines never deploy at the same time, and a deploy is never
+  # cancelled halfway by a newer push
+  resource_group: edupay-174
+  interruptible: false
+  environment:
+    name: develop
+    url: "$PUBLIC_ORIGIN"
+  before_script:
+    - |
+      if [ -z "${SSH_DEPLOY_KEY:-}" ]; then
+        echo "Missing CI/CD variable SSH_DEPLOY_KEY (File, Protected): Settings > CI/CD > Variables."
+        exit 1
+      fi
+    - apk add --no-cache openssh-client
+    - install -m 700 -d ~/.ssh
+    # A File variable holds a path. OpenSSH refuses a key without a newline
+    # after the END line, and GitLab stores the file without one.
+    - printf '%s\n' "$(tr -d '\r' < "$SSH_DEPLOY_KEY")" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+  script:
+    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
+    - scp deploy/docker-compose.yml "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/docker-compose.yml"
+    - |
+      # Every CI/CD variable that has a value goes to .env.ci on the server,
+      # plus the two images of this deploy. The values travel on ssh's stdin,
+      # never on a command line, so they show in no log or process list.
+      {
+        for v in POSTGRES_PASSWORD JWT_SECRET PUBLIC_ORIGIN SMTP_USERNAME SMTP_PASSWORD \
+                 BANK_ACCOUNT_NUMBER BANK_NAME BANK_ACCOUNT_HOLDER; do
+          eval "val=\${$v:-}"
+          [ -z "$val" ] || printf '%s=%s\n' "$v" "$val"
+        done
+        printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$BACKEND_IMAGE" "$FRONTEND_IMAGE"
+      } | ssh "$DEPLOY_USER@$DEPLOY_HOST" "umask 077 && cat > '$DEPLOY_PATH/.env.ci'"
+    - |
+      # Merge .env.ci into .env: lines of the same name are replaced, the rest
+      # kept. Stop before touching a container if a required one is missing.
+      ssh "$DEPLOY_USER@$DEPLOY_HOST" "DEPLOY_PATH='$DEPLOY_PATH' sh -s" <<'REMOTE'
+      set -e
+      umask 077
+      cd "$DEPLOY_PATH"
+      touch .env
+      awk -F= 'NR==FNR { k[$1] = 1; next } !($1 in k)' .env.ci .env > .env.tmp
+      cat .env.ci >> .env.tmp
+      rm -f .env.ci
+      for v in POSTGRES_PASSWORD JWT_SECRET PUBLIC_ORIGIN; do
+        grep -q "^$v=." .env.tmp || { echo "Missing $v: set the CI/CD variable $v in Settings > CI/CD > Variables"; rm -f .env.tmp; exit 1; }
+      done
+      mv .env.tmp .env
+      chmod 600 .env
+      REMOTE
+    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && docker compose pull backend frontend"
+    - |
+      # Back up right before the new backend starts: its Liquibase changesets
+      # may change tables, so rolling back the image needs this dump too. A
+      # failed dump stops the deploy. Keep 10.
+      ssh "$DEPLOY_USER@$DEPLOY_HOST" "DEPLOY_PATH='$DEPLOY_PATH' SHA='$CI_COMMIT_SHORT_SHA' sh -s" <<'REMOTE'
+      set -e
+      # The dump holds password hashes: readable by ubuntu only
+      umask 077
+      cd "$DEPLOY_PATH"
+      if [ "$(docker inspect -f '{{.State.Running}}' edupay-db 2>/dev/null)" != true ]; then
+        echo "edupay-db is not running yet: nothing to back up"; exit 0
+      fi
+      mkdir -p backups
+      FILE="backups/edupay-$(date +%Y%m%d-%H%M%S)-$SHA.dump"
+      docker exec edupay-db pg_dump -U edupay -Fc edupay > "$FILE"
+      echo "Backed up to $FILE ($(du -h "$FILE" | cut -f1)); restore with pg_restore --clean"
+      ls -1t backups/edupay-*.dump | tail -n +11 | xargs -r rm -f
+      REMOTE
+    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && docker compose up -d --remove-orphans && docker compose ps"
+    - |
+      # Through the frontend's nginx, as a browser would: the page must load
+      # and /api must get the backend's 401, not nginx's 502. Asked every 3 s
+      # rather than waiting for Docker's "healthy", which is checked only every
+      # 30 s. `up -d` has already replaced the old container, so a 401 can only
+      # come from the new one. 140 x 3 s covers start_period (180 s) plus five
+      # failed checks.
+      ssh "$DEPLOY_USER@$DEPLOY_HOST" sh -s <<'REMOTE'
+      status() { docker exec edupay-frontend sh -c "wget -S -O /dev/null http://127.0.0.1$1 2>&1 | grep -m1 HTTP/"; }
+      s=missing
+      for i in $(seq 1 140); do
+        s=$(docker inspect -f '{{.State.Health.Status}}' edupay-backend 2>/dev/null || echo missing)
+        [ "$s" = unhealthy ] && break
+        if status /api/academic_years | grep -q ' 401' && status / | grep -q ' 200'; then
+          echo "edupay-backend answers through nginx after about $((i * 3)) s"; exit 0
+        fi
+        sleep 3
+      done
+      echo "page: $(status /)  api: $(status /api/academic_years)"
+      echo "edupay-backend did not come up (state: $s). Last 150 log lines:"
+      docker logs --tail 150 edupay-backend
+      exit 1
+      REMOTE
+    - |
+      # Reached only once the new version answers. Never -f, so Docker itself
+      # refuses to remove an image a container still uses. A failed cleanup
+      # does not turn the deploy red.
+      ssh "$DEPLOY_USER@$DEPLOY_HOST" "BASE='$IMAGE_BASE' KEEP='$KEEP_IMAGES' sh -s" <<'REMOTE' || true
+      for repo in "$BASE-backend" "$BASE-frontend"; do
+        docker images "$repo" --format '{{.CreatedAt}}|{{.Repository}}:{{.Tag}}' | sort -r | tail -n +$((KEEP + 1)) \
+          | cut -d'|' -f2 | xargs -r docker rmi 2>/dev/null || true
+        echo "$repo: $(docker images "$repo" -q | sort -u | wc -l) image(s) kept"
+      done
+      REMOTE

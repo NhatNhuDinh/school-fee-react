@@ -1,0 +1,18 @@
+# Build context of deploy/*.Dockerfile is the repository root. What is left out
+# here is never sent to Docker, and a change to it never invalidates the COPY
+# layers: a commit that only touches tests or docs rebuilds nothing.
+.git
+.gitlab
+.claude
+docs
+**/*.md
+**/*.MD
+backend/build
+backend/.gradle
+backend/config
+backend/src/test
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.*
+frontend/Dockerfile
