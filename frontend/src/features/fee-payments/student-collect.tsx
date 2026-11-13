@@ -10,8 +10,9 @@ import {
   type Receipt,
   type StudentDebts,
   type StudentHit,
-  type TransferInfo,
+  type TransferRequest,
 } from "@/domains/fee-payment/types";
+import { FEE_PAYMENTS, onConnected, subscribe } from "@/shared/api/live";
 import { DatePicker } from "@/shared/components/form/date-picker";
 import { formatNumber } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
@@ -23,11 +24,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import {
   cancelReceipts,
+  cancelTransfer,
+  checkTransfer,
   collectStudent,
+  confirmTransfer,
+  createTransferRequest,
+  deferTransfer,
+  describeCheck,
   errorMessage,
   fetchDebts,
   fetchReceipts,
-  fetchTransferInfo,
+  getTransferRequest,
   today,
 } from "./api";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -38,8 +45,9 @@ import { StudentSearch } from "./student-search";
  * Thu tiền theo học sinh: find the student, tick the đợt thu to settle, take the money.
  *
  * Whole amounts only — the figure on the right is what the ticked khoản thu still owe and cannot
- * be typed over. For a transfer the screen shows the VietQR with the bank account and the
- * description; the money is confirmed by hand once it has arrived.
+ * be typed over. A transfer is a stored request (one code, one amount): the screen shows its QR and
+ * waits for the bank's report, which settles it by itself; "Kiểm tra giao dịch" asks the bank now, and
+ * "Đã nhận tiền" is the cashier saying the money has arrived when the report is late or lost.
  */
 export function StudentCollect({
   yearId,
@@ -58,7 +66,13 @@ export function StudentCollect({
   const [excluded, setExcluded] = React.useState<Set<number>>(new Set());
   const [method, setMethod] = React.useState<PaymentMethod>("CASH");
   const [paidOn, setPaidOn] = React.useState(today());
-  const [transfer, setTransfer] = React.useState<TransferInfo | null>(null);
+  const [request, setRequest] = React.useState<TransferRequest | null>(null);
+  const [paid, setPaid] = React.useState<TransferRequest | null>(null);
+  const [creating, setCreating] = React.useState(false);
+  const [checking, setChecking] = React.useState(false);
+  const [confirmReceived, setConfirmReceived] = React.useState(false);
+  /** Requests that must not be cancelled when the screen lets go of them: paid, or set aside for later. */
+  const keep = React.useRef<Set<number>>(new Set());
   const [editing, setEditing] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [last, setLast] = React.useState<Receipt[]>([]);
@@ -95,20 +109,134 @@ export function StudentCollect({
   const receivable = shown.reduce((sum, batch) => sum + batch.receivable, 0);
   const collected = shown.reduce((sum, batch) => sum + batch.collected, 0);
 
-  // The QR follows the amount; a fresh description each time the amount or the student changes.
+  // Another student or another method starts clean: whatever was paid belongs to the last one.
   React.useEffect(() => {
-    if (method !== "TRANSFER" || amount <= 0) {
-      setTransfer(null);
+    setPaid(null);
+  }, [student?.enrollmentId, method]);
+
+  const selectionKey = picked.map((line) => line.receivableId).join(",");
+
+  function settled(done: TransferRequest) {
+    keep.current.add(done.id);
+    setPaid(done);
+    setRequest(null);
+    setLast(done.receipts);
+    toast.success(done.paidBy === "BANK" ? "Đã nhận tiền chuyển khoản" : "Đã ghi nhận tiền chuyển khoản", {
+      description: `${done.receipts.map((r) => r.receiptCode).join(", ")} · ${formatNumber(done.amount)} đ`,
+    });
+    setReload((n) => n + 1);
+  }
+
+  // A transfer is asked for as soon as there is something to pay and it is the chosen method; changing
+  // the selection asks again (the server cancels the earlier one — its QR is no longer on screen).
+  React.useEffect(() => {
+    if (method !== "TRANSFER" || !student || picked.length === 0 || paid) {
+      setRequest(null);
       return;
     }
     let live = true;
-    fetchTransferInfo(yearId, amount)
-      .then((info) => live && setTransfer(info))
-      .catch(() => live && setTransfer(null));
+    setCreating(true);
+    createTransferRequest(yearId, student.enrollmentId, picked.map((line) => line.receivableId))
+      .then((created) => live && setRequest(created))
+      .catch((error) => {
+        if (!live) return;
+        setRequest(null);
+        toast.error(errorMessage(error));
+      })
+      .finally(() => live && setCreating(false));
     return () => {
       live = false;
     };
-  }, [method, amount, yearId, student?.enrollmentId, reload]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method, student?.enrollmentId, selectionKey, paid, yearId]);
+
+  // Letting go of an open request (another method, another student, leaving the screen) cancels it, so
+  // unanswered QR codes do not pile up as "waiting" — unless it was set aside or already paid.
+  React.useEffect(() => {
+    const id = request?.id;
+    const kept = keep.current;
+    return () => {
+      if (id && !kept.has(id)) cancelTransfer(yearId, id).catch(() => undefined);
+    };
+  }, [request?.id, yearId]);
+
+  // Waiting for the bank: the server pushes "paid" over the socket the moment the transfer is settled, so
+  // nothing here asks on a timer. The one request that is still made — on subscribing, on a reconnect and
+  // when the window regains focus — is the catch-up for a push that was missed while the socket was down.
+  React.useEffect(() => {
+    if (!request || (request.status !== "PENDING" && request.status !== "DEFERRED")) return;
+    const id = request.id;
+    let live = true;
+    const look = () =>
+      getTransferRequest(yearId, id)
+        .then((fresh) => {
+          if (live && fresh.status === "PAID") settled(fresh);
+        })
+        .catch(() => undefined);
+
+    const stop = subscribe(FEE_PAYMENTS, (message) => {
+      if ((message as { requestId?: number } | null)?.requestId === id) void look();
+    });
+    const stopCatchUp = onConnected(() => void look());
+    window.addEventListener("focus", look);
+    void look();
+    return () => {
+      live = false;
+      stop();
+      stopCatchUp();
+      window.removeEventListener("focus", look);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.id, request?.status, yearId]);
+
+  async function checkNow() {
+    if (!request) return;
+    setChecking(true);
+    try {
+      const result = await checkTransfer(yearId, request.id);
+      if (result.request.status === "PAID") {
+        settled(result.request);
+      } else {
+        toast.info("Đã kiểm tra giao dịch", {
+          description: `${describeCheck(result.summary)}. Chưa thấy khoản chuyển cho mã này.`,
+        });
+        setRequest(result.request);
+      }
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function receivedByHand() {
+    if (!request) return;
+    setBusy(true);
+    try {
+      settled(await confirmTransfer(yearId, request.id));
+      setConfirmReceived(false);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reviewLater() {
+    if (!request) return;
+    try {
+      keep.current.add(request.id);
+      await deferTransfer(yearId, request.id);
+      toast.success("Đã chuyển sang Chờ thanh toán", {
+        description: "Khi tiền về, hệ thống vẫn tự ghi nhận. Xem ở màn Rà soát giao dịch.",
+      });
+      setRequest(null);
+      setStudent(null);
+    } catch (error) {
+      keep.current.delete(request.id);
+      toast.error(errorMessage(error));
+    }
+  }
 
   function toggleBatch(batch: BatchDebt, on: boolean) {
     const next = new Set(chosen);
@@ -127,7 +255,6 @@ export function StudentCollect({
         method,
         paidOn,
         receivableIds: picked.map((line) => line.receivableId),
-        transferContent: method === "TRANSFER" ? transfer?.content : undefined,
       });
       setLast(result.receipts);
       toast.success(
@@ -168,8 +295,8 @@ export function StudentCollect({
     }
   }
 
-  const canCollect = Boolean(canWrite?.can) && picked.length > 0 && !busy && (method === "CASH" || transfer !== null);
-  const transferLabels = method === "TRANSFER";
+  const canCollect = Boolean(canWrite?.can) && picked.length > 0 && !busy && method === "CASH";
+  const waitingForBank = request !== null && (request.status === "PENDING" || request.status === "DEFERRED");
 
   return (
     <>
@@ -351,26 +478,44 @@ export function StudentCollect({
                 </div>
               </div>
 
-              {method === "TRANSFER" && amount > 0 ? (
-                transfer?.configured ? (
+              {method === "TRANSFER" ? (
+                paid ? (
+                  <PaidCard
+                    request={paid}
+                    canContinue={picked.length > 0}
+                    onContinue={() => setPaid(null)}
+                  />
+                ) : amount <= 0 ? null : request?.transfer?.configured ? (
                   <div className="grid gap-3">
                     <div className="flex gap-3 rounded-md border p-3">
-                      {transfer.qrUrl ? (
-                        <img src={transfer.qrUrl} alt="Mã QR chuyển khoản" className="size-32 shrink-0" />
+                      {request.transfer.qrUrl ? (
+                        <img src={request.transfer.qrUrl} alt="Mã QR chuyển khoản" className="size-32 shrink-0" />
                       ) : null}
                       <dl className="min-w-0 text-xs">
-                        <Bank label="Ngân hàng" value={transfer.bank} />
-                        <Bank label="Số tài khoản" value={transfer.accountNumber} />
-                        <Bank label="Chủ tài khoản" value={transfer.accountHolder} />
-                        <Bank label="Nội dung" value={transfer.content} />
+                        <Bank label="Ngân hàng" value={request.transfer.bank} />
+                        <Bank label="Số tài khoản" value={request.transfer.accountNumber} />
+                        <Bank label="Chủ tài khoản" value={request.transfer.accountHolder} />
+                        <Bank label="Nội dung" value={request.transfer.content} />
                       </dl>
                     </div>
                     <p className="text-muted-foreground text-xs">Quét mã QR để chuyển khoản đúng số tiền và nội dung</p>
                     <p className="flex items-center gap-2 text-xs">
-                      <span className="bg-warning size-2 rounded-full" />
-                      Chờ tiền về. Bấm “Đã nhận tiền” khi đã nhận.
+                      <span className="bg-warning size-2 animate-pulse rounded-full" />
+                      Đang chờ tiền về, tự cập nhật khi nhận được
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-primary text-primary hover:text-primary w-fit"
+                      disabled={checking}
+                      onClick={checkNow}
+                    >
+                      {checking ? "Đang kiểm tra…" : "Kiểm tra giao dịch"}
+                    </Button>
                   </div>
+                ) : creating || !request ? (
+                  <p className="text-muted-foreground text-xs">Đang tạo mã chuyển khoản…</p>
                 ) : (
                   <p className="text-destructive text-xs">
                     Chưa cấu hình tài khoản ngân hàng của trường nên không tạo được mã QR.
@@ -394,21 +539,50 @@ export function StudentCollect({
         >
           Hủy thu tiền
         </Button>
-        <Button type="button" variant="outline" disabled={!student || batches.length === 0} onClick={() => setEditing(true)}>
-          Sửa chi tiết
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="border-primary text-primary hover:text-primary"
-          disabled={!canCollect}
-          onClick={() => collect(true)}
-        >
-          {transferLabels ? "Đã nhận & In" : "Thu tiền & In"}
-        </Button>
-        <Button type="button" disabled={!canCollect} onClick={() => collect(false)}>
-          {transferLabels ? "Đã nhận tiền" : "Thu tiền"}
-        </Button>
+        {method === "TRANSFER" && paid ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => setStudent(null)}>
+              Thu học sinh khác
+            </Button>
+            <Button type="button" disabled={last.length === 0} onClick={printLast}>
+              In phiếu thu
+            </Button>
+          </>
+        ) : method === "TRANSFER" ? (
+          <>
+            <Button type="button" variant="outline" disabled={!student || batches.length === 0} onClick={() => setEditing(true)}>
+              Sửa chi tiết
+            </Button>
+            <Button type="button" variant="outline" disabled={!waitingForBank || busy} onClick={reviewLater}>
+              Rà soát sau
+            </Button>
+            <Button
+              type="button"
+              disabled={!waitingForBank || !canWrite?.can || busy}
+              onClick={() => setConfirmReceived(true)}
+            >
+              Đã nhận tiền
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="outline" disabled={!student || batches.length === 0} onClick={() => setEditing(true)}>
+              Sửa chi tiết
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-primary text-primary hover:text-primary"
+              disabled={!canCollect}
+              onClick={() => collect(true)}
+            >
+              Thu tiền & In
+            </Button>
+            <Button type="button" disabled={!canCollect} onClick={() => collect(false)}>
+              Thu tiền
+            </Button>
+          </>
+        )}
       </div>
 
       <EditLinesDialog
@@ -417,6 +591,15 @@ export function StudentCollect({
         excluded={excluded}
         onChange={setExcluded}
         onClose={() => setEditing(false)}
+      />
+      <ConfirmDialog
+        open={confirmReceived}
+        title="Xác nhận đã nhận tiền?"
+        description={`Ghi nhận ${formatNumber(request?.amount ?? 0)} đ chuyển khoản của ${student?.fullName ?? "học sinh"} khi chưa thấy giao dịch từ ngân hàng. Chỉ bấm khi bạn đã thấy tiền về tài khoản. Nếu tiền về sau, hệ thống sẽ tự khớp với phiếu này.`}
+        confirmLabel="Đã nhận tiền"
+        busy={busy}
+        onConfirm={receivedByHand}
+        onClose={() => setConfirmReceived(false)}
       />
       <ConfirmDialog
         open={confirmCancel}
@@ -437,6 +620,35 @@ function Bank({ label, value }: { label: string; value: string | null }) {
     <div className="mb-1.5">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-semibold break-all">{value}</dd>
+    </div>
+  );
+}
+
+/** The transfer has been paid, by the bank's report or by the cashier's word. */
+function PaidCard({
+  request,
+  canContinue,
+  onContinue,
+}: {
+  request: TransferRequest;
+  canContinue: boolean;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="grid gap-2 rounded-md border border-success/40 bg-success-subtle p-3 text-sm">
+      <p className="flex items-center gap-2 font-semibold">
+        <span className="bg-success size-2 rounded-full" />
+        Đã nhận {formatNumber(request.amount)} đ
+      </p>
+      <p className="text-muted-foreground text-xs">
+        {request.paidBy === "BANK" ? "Ngân hàng đã báo tiền về, hệ thống tự ghi nhận." : "Thu ngân đã xác nhận đã nhận tiền."}
+        {request.receipts.length > 0 ? ` Phiếu thu: ${request.receipts.map((r) => r.receiptCode).join(", ")}.` : ""}
+      </p>
+      {canContinue ? (
+        <Button type="button" variant="outline" size="sm" className="w-fit" onClick={onContinue}>
+          Thu tiếp các khoản còn lại
+        </Button>
+      ) : null}
     </div>
   );
 }

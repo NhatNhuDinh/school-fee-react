@@ -29,6 +29,9 @@ function socketUrl(): string {
 /** A destination, minus the `/user` prefix the server resolves per session. */
 export const NOTIFICATIONS = "/user/queue/notifications";
 
+/** Thu tiền: tells the cashier whose QR is on screen that the transfer has been paid. */
+export const FEE_PAYMENTS = "/user/queue/fee_payments";
+
 /**
  * Where the server pushes this account's grants when they change.
  *
@@ -41,6 +44,7 @@ export const AUTHORITIES = "/user/queue/auth";
 type Handler = (body: unknown) => void;
 
 const handlers = new Map<string, Set<Handler>>();
+const connectListeners = new Set<() => void>();
 const subscriptions = new Map<string, StompSubscription>();
 
 let client: Client | null = null;
@@ -71,6 +75,19 @@ export function subscribe(destination: string, handler: Handler): () => void {
       subscriptions.get(destination)?.unsubscribe();
       subscriptions.delete(destination);
     }
+  };
+}
+
+/**
+ * Runs `listener` every time the socket (re)connects — once the subscriptions are open again.
+ *
+ * For a screen that must catch up on what it missed while the socket was down: a push is only delivered
+ * to a session that exists, so the way back from a gap is one ordinary request, made here.
+ */
+export function onConnected(listener: () => void): () => void {
+  connectListeners.add(listener);
+  return () => {
+    connectListeners.delete(listener);
   };
 }
 
@@ -111,6 +128,7 @@ export function connect() {
       // Re-opened rather than assumed to survive: a reconnect is a new session
       // on the server, with no memory of what this client had subscribed to.
       handlers.forEach((_, destination) => open(destination));
+      connectListeners.forEach((listener) => listener());
     },
 
     onWebSocketClose: () => {
@@ -162,6 +180,7 @@ export function connect() {
  */
 export function disconnect() {
   handlers.clear();
+  connectListeners.clear();
   subscriptions.clear();
   connected = false;
   void client?.deactivate();

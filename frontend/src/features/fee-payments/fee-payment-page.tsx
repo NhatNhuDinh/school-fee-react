@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router";
 
+import { FEE_PAYMENTS, onConnected, subscribe } from "@/shared/api/live";
+import { fetchPaymentSummary } from "./api";
 import { useAcademicYear } from "@/shared/components/academic-year/academic-year-context";
 import { NoAcademicYear } from "@/shared/components/academic-year/no-academic-year";
 import { ListView, ListViewHeader } from "@/shared/components/views/list-view";
@@ -40,9 +42,33 @@ function PaymentsOfYear({ yearId }: { yearId: number }) {
   const navigate = useNavigate();
   const [mode, setMode] = React.useState<Mode>("student");
   const { print, node } = useReceiptPrinter();
+  const [pending, setPending] = React.useState(0);
+
+  // The badge on "Rà soát giao dịch": how many bank lines are waiting for a person. Read once, then kept
+  // current by the server's push when the set changes (and re-read after a reconnect, for a push missed).
+  React.useEffect(() => {
+    let live = true;
+    const load = () =>
+      fetchPaymentSummary(yearId)
+        .then((summary) => live && setPending(summary.review))
+        .catch(() => undefined);
+    void load();
+    const stop = subscribe(FEE_PAYMENTS, (message) => {
+      if ((message as { type?: string } | null)?.type === "review-changed") void load();
+    });
+    const stopCatchUp = onConnected(() => void load());
+    return () => {
+      live = false;
+      stop();
+      stopCatchUp();
+    };
+  }, [yearId]);
 
   const toolbarRight = (
     <>
+      <Button type="button" variant="outline" onClick={() => navigate("/fee_payments/review")}>
+        Rà soát giao dịch{pending > 0 ? ` (${pending})` : ""}
+      </Button>
       <Select value={mode} onValueChange={(value) => setMode(value as Mode)}>
         <SelectTrigger className="w-44">
           <SelectValue />

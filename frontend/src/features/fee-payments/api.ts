@@ -6,7 +6,9 @@ import type {
   Receipt,
   StudentDebts,
   StudentHit,
-  TransferInfo,
+  BankRow,
+  CheckSummary,
+  TransferRequest,
 } from "@/domains/fee-payment/types";
 import { kyInstance } from "@/shared/api/data";
 
@@ -32,10 +34,6 @@ export function fetchDebts(yearId: number, enrollmentId: number): Promise<Studen
   return kyInstance
     .get(`${BASE}/students/${enrollmentId}/debts`, { searchParams: { academicYearId: yearId } })
     .json<StudentDebts>();
-}
-
-export function fetchTransferInfo(yearId: number, amount: number): Promise<TransferInfo> {
-  return kyInstance.get(`${BASE}/transfer-info`, { searchParams: { academicYearId: yearId, amount } }).json<TransferInfo>();
 }
 
 export function collectStudent(input: {
@@ -96,4 +94,74 @@ export function today(): string {
 export function errorMessage(error: unknown): string {
   const e = error as { message?: string; errors?: Record<string, unknown> } | null;
   return e?.message ?? "Không thực hiện được, vui lòng thử lại";
+}
+
+// ---- transfer requests (the QR) and bank lines
+
+const post = <T>(path: string, json: unknown) => kyInstance.post(path, { json }).json<T>();
+
+export function createTransferRequest(
+  yearId: number,
+  enrollmentId: number,
+  receivableIds: number[]
+): Promise<TransferRequest> {
+  return post(`${BASE}/transfer-requests`, { academicYearId: yearId, enrollmentId, receivableIds });
+}
+
+export function getTransferRequest(yearId: number, id: number): Promise<TransferRequest> {
+  return kyInstance
+    .get(`${BASE}/transfer-requests/${id}`, { searchParams: { academicYearId: yearId } })
+    .json<TransferRequest>();
+}
+
+export function waitingTransfers(yearId: number): Promise<TransferRequest[]> {
+  return kyInstance
+    .get(`${BASE}/transfer-requests`, { searchParams: { academicYearId: yearId } })
+    .json<TransferRequest[]>();
+}
+
+export const deferTransfer = (yearId: number, id: number) =>
+  post<TransferRequest>(`${BASE}/transfer-requests/${id}/defer`, { academicYearId: yearId });
+export const cancelTransfer = (yearId: number, id: number) =>
+  post<TransferRequest>(`${BASE}/transfer-requests/${id}/cancel`, { academicYearId: yearId });
+export const confirmTransfer = (yearId: number, id: number) =>
+  post<TransferRequest>(`${BASE}/transfer-requests/${id}/confirm`, { academicYearId: yearId });
+export const checkTransfer = (yearId: number, id: number) =>
+  post<{ summary: CheckSummary; request: TransferRequest }>(`${BASE}/transfer-requests/${id}/check`, {
+    academicYearId: yearId,
+  });
+
+export function fetchBankRows(
+  yearId: number,
+  tab: "review" | "processed",
+  filter: { from?: string; to?: string; q?: string } = {}
+): Promise<BankRow[]> {
+  const searchParams: Record<string, string | number> = { academicYearId: yearId, tab };
+  if (filter.from) searchParams.from = filter.from;
+  if (filter.to) searchParams.to = filter.to;
+  if (filter.q?.trim()) searchParams.q = filter.q.trim();
+  return kyInstance.get(`${BASE}/bank-transactions`, { searchParams }).json<BankRow[]>();
+}
+
+export function fetchPaymentSummary(yearId: number): Promise<{ review: number; waiting: number }> {
+  return kyInstance
+    .get(`${BASE}/bank-transactions/summary`, { searchParams: { academicYearId: yearId } })
+    .json<{ review: number; waiting: number }>();
+}
+
+export const checkBank = (yearId: number, days?: number) =>
+  post<CheckSummary>(`${BASE}/bank-transactions/check`, { academicYearId: yearId, days });
+export const ignoreBankRow = (yearId: number, id: number, note: string) =>
+  post<{ ok: true }>(`${BASE}/bank-transactions/${id}/ignore`, { academicYearId: yearId, note });
+export const assignBankRow = (yearId: number, id: number, enrollmentId: number, receivableIds: number[]) =>
+  post<{ ok: true }>(`${BASE}/bank-transactions/${id}/assign`, { academicYearId: yearId, enrollmentId, receivableIds });
+
+/** The result of a check, in one line a person can read. */
+export function describeCheck(summary: CheckSummary): string {
+  if (summary.fetched === 0) return "Không có giao dịch tiền vào trong khoảng đã kiểm tra";
+  const parts = [`${summary.fetched} giao dịch`];
+  if (summary.matched) parts.push(`${summary.matched} đã khớp và ghi nhận`);
+  if (summary.needsReview) parts.push(`${summary.needsReview} cần rà soát`);
+  if (summary.duplicates) parts.push(`${summary.duplicates} đã có từ trước`);
+  return parts.join(" · ");
 }

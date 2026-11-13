@@ -36,7 +36,7 @@ import {
   FeeCollectionBatchList,
   FeeCollectionBatchShow,
 } from "@/features/fee-collection-batches";
-import { FeePaymentPage, PaymentHistory } from "@/features/fee-payments";
+import { BankReviewPage, FeePaymentPage, PaymentHistory } from "@/features/fee-payments";
 import { FeeItemList } from "@/features/fee-items";
 import { FeeRegistrationPage } from "@/features/fee-registrations";
 import { StudentList } from "@/features/students";
@@ -244,6 +244,7 @@ export function AppRoutes() {
         >
           <Route index element={<FeePaymentPage />} />
           <Route path="history" element={<PaymentHistory />} />
+          <Route path="review" element={<BankReviewPage />} />
         </Route>
         <Route
           path="/training_systems"
