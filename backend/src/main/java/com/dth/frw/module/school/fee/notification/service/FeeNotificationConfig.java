@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @Configuration
 @EnableScheduling
-@EnableConfigurationProperties({FeeNotificationProperties.class, FeePaymentProperties.class})
+@EnableConfigurationProperties({FeeNotificationProperties.class, FeePaymentProperties.class,
+        com.dth.frw.module.school.fee.payment.sepay.SepayProperties.class})
 public class FeeNotificationConfig {
 }

@@ -595,7 +595,7 @@ public class FeeNotificationService implements FeeCollectionBatchLock {
     }
 
     private String orderCode(java.util.Random source) {
-        StringBuilder code = new StringBuilder(paymentProperties.orderCodePrefix().toUpperCase(Locale.ROOT)).append('-');
+        StringBuilder code = new StringBuilder(paymentProperties.orderCodePrefix().toUpperCase(Locale.ROOT));
         for (int i = 0; i < ORDER_SUFFIX_LENGTH; i++) {
             code.append(ORDER_ALPHABET.charAt(source.nextInt(ORDER_ALPHABET.length())));
         }

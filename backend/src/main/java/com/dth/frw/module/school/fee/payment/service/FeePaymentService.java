@@ -178,14 +178,8 @@ public class FeePaymentService {
                 (String) h.get("class_name"), (String) h.get("group_name"), batches);
     }
 
-    /**
-     * The bank account, a fresh transfer description and the QR that carries both, for the
-     * amount about to be collected. The description is handed back when the receipt is made so
-     * it is kept with it.
-     */
-    public TransferInfo transferInfo(Long yearId, BigDecimal amount) {
-        academicYearService.get(yearId);
-        String content = orderCode();
+    /** The bank account and the QR that carries the amount and the order code, as the counter shows them. */
+    public TransferInfo transferInfo(String content, BigDecimal amount) {
         if (!paymentProperties.configured()) {
             return new TransferInfo(false, null, null, null, content, amount, null);
         }
@@ -210,7 +204,9 @@ public class FeePaymentService {
     public Collected collectStudent(Long yearId, Long enrollmentId, String method, LocalDate paidOn,
                                     Collection<Long> receivableIds, String transferContent) {
         AcademicYear year = academicYearService.get(yearId);
-        requireMethod(method);
+        if (!"CASH".equals(method)) {
+            throw invalid("method", "Chuyển khoản được ghi nhận qua yêu cầu chuyển khoản, không thu trực tiếp");
+        }
         if (receivableIds == null || receivableIds.isEmpty()) {
             throw invalid("receivableIds", "Chọn ít nhất một khoản thu");
         }
@@ -368,12 +364,53 @@ public class FeePaymentService {
                 rs.getString(5), rs.getString(6), rs.getInt(7), rs.getBigDecimal(8)));
     }
 
-    /** One receipt per (đợt, student); every receivable is brought up to its full amount. */
+    /** Who took the money, and which transfer request and bank line (if any) it settles. */
+    public record Source(String collectorName, Long collectorId, Long transferRequestId, Long bankTransactionId) {
+    }
+
+    /** What {@link #settleReceivables} did: the receipts, or why it could not. A refusal changes nothing. */
+    public record SettleResult(List<Receipt> receipts, String problem) {
+        public boolean ok() {
+            return problem == null;
+        }
+    }
+
+    /**
+     * Settles named receivables for what is still owed, but only if they are all still open and still
+     * come to {@code expectedTotal} — the figure the payer was shown. A mismatch is answered, not thrown:
+     * the caller is usually a webhook that has to record why it did nothing.
+     */
+    @Transactional
+    public SettleResult settleReceivables(AcademicYear year, Collection<Long> receivableIds, BigDecimal expectedTotal,
+                                          String method, LocalDate paidOn, String transferContent, Source source) {
+        if (receivableIds == null || receivableIds.isEmpty()) {
+            return new SettleResult(List.of(), "Không có khoản thu nào để thu");
+        }
+        List<Open> open = lockOpen(year.getId(), "r.id in (:ids)", new MapSqlParameterSource("ids", receivableIds));
+        if (open.size() != new HashSet<>(receivableIds).size()) {
+            return new SettleResult(List.of(), "Có khoản thu đã được thu hoặc không còn trong đợt thu");
+        }
+        BigDecimal total = sum(open, Open::outstanding);
+        if (expectedTotal != null && total.compareTo(expectedTotal) != 0) {
+            return new SettleResult(List.of(), "Số còn phải thu đã thay đổi: " + total.toPlainString()
+                    + " thay vì " + expectedTotal.toPlainString());
+        }
+        return new SettleResult(settle(year, open, method, paidOn, transferContent, source), null);
+    }
+
+    /** The counter, in cash: the signed-in user took the money. */
     private List<Receipt> settle(AcademicYear year, List<Open> open, String method, LocalDate paidOn,
                                  String transferContent) {
+        return settle(year, open, method, paidOn, transferContent,
+                new Source(collectorName(), CurrentUser.id().orElse(null), null, null));
+    }
+
+    /** One receipt per (đợt, student); every receivable is brought up to its full amount. */
+    private List<Receipt> settle(AcademicYear year, List<Open> open, String method, LocalDate paidOn,
+                                 String transferContent, Source source) {
         long organizationId = year.getOrganization().getId();
-        String who = collectorName();
-        Long collectorId = CurrentUser.id().orElse(null);
+        String who = source.collectorName();
+        Long collectorId = source.collectorId();
         LocalDate date = paidOn == null ? LocalDate.now() : paidOn;
         if (date.isAfter(LocalDate.now())) {
             throw invalid("paidOn", "Ngày thu không được ở tương lai");
@@ -399,10 +436,12 @@ public class FeePaymentService {
             BigDecimal amount = sum(rows, Open::outstanding);
             Long paymentId = jdbc.queryForObject("""
                     insert into fee_payments (organization_id, academic_year_id, batch_id, batch_student_id,
-                        receipt_no, method, amount, paid_on, transfer_content, collector_id, collector_name)
-                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id
+                        receipt_no, method, amount, paid_on, transfer_content, collector_id, collector_name,
+                        transfer_request_id, bank_transaction_id)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id
                     """, Long.class, organizationId, year.getId(), rows.get(0).batchId(), entry.getKey(),
-                    next++, method, amount, date, content, collectorId, who);
+                    next++, method, amount, date, content, collectorId, who,
+                    source.transferRequestId(), source.bankTransactionId());
             paymentIds.add(paymentId);
             batches.add(rows.get(0).batchId());
             for (Open row : rows) {
@@ -452,8 +491,12 @@ public class FeePaymentService {
                 .orElseGet(() -> CurrentUser.username().orElse(null));
     }
 
-    private String orderCode() {
-        StringBuilder code = new StringBuilder(paymentProperties.orderCodePrefix().toUpperCase(Locale.ROOT)).append('-');
+    /**
+     * A fresh order code: the prefix and 14 characters, no separator. Banks strip punctuation from a
+     * transfer description, so a code with a dash could not be read back from the statement.
+     */
+    public String newOrderCode() {
+        StringBuilder code = new StringBuilder(paymentProperties.orderCodePrefix().toUpperCase(Locale.ROOT));
         for (int i = 0; i < 14; i++) {
             code.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));
         }
