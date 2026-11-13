@@ -77,6 +77,11 @@ public final class Permissions {
     public static final String FEE_NOTIFICATIONS_WRITE = "fee_notifications:write";
     public static final String FEE_NOTIFICATIONS_DELETE = "fee_notifications:delete";
 
+    // Delete cancels a receipt and gives the debt back.
+    public static final String FEE_PAYMENTS_READ = "fee_payments:read";
+    public static final String FEE_PAYMENTS_WRITE = "fee_payments:write";
+    public static final String FEE_PAYMENTS_DELETE = "fee_payments:delete";
+
     // ADMIN only, and 016 spells that out rather than joining: editing a data
     // scope is editing the security model, so it is not a grant to hand around.
     // There is deliberately no row-level scope on the policy table itself --
