@@ -3,6 +3,7 @@ package com.dth.frw.module.school.fee.payment.api;
 import com.dth.frw.module.school.fee.payment.sepay.BankTransactionService;
 import com.dth.frw.module.school.fee.payment.sepay.BankTransactionService.CheckSummary;
 import com.dth.frw.module.school.fee.payment.sepay.BankTransactionService.Row;
+import com.dth.frw.module.school.fee.payment.service.FeeDashboardService;
 import com.dth.frw.module.school.fee.payment.service.FeePaymentService;
 import com.dth.frw.module.school.fee.payment.service.FeeTransferRequestService;
 import com.dth.frw.module.school.fee.payment.service.FeeTransferRequestService.View;
@@ -43,8 +44,11 @@ public class FeePaymentController {
     private final FeeTransferRequestService transferRequests;
     private final BankTransactionService bank;
 
+    private final FeeDashboardService dashboard;
+
     public FeePaymentController(FeePaymentService service, FeeTransferRequestService transferRequests,
-                                BankTransactionService bank) {
+                                BankTransactionService bank, FeeDashboardService dashboard) {
+        this.dashboard = dashboard;
         this.service = service;
         this.transferRequests = transferRequests;
         this.bank = bank;
@@ -191,6 +195,14 @@ public class FeePaymentController {
                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
                                       @RequestParam(required = false) String q) {
         return bank.list(academicYearId, tab, from, to, q);
+    }
+
+    /** The home page: totals, the last {@code days} of receipts, and how the đợt, khoản thu and classes stand. */
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasAuthority('" + Permissions.FEE_PAYMENTS_READ + "')")
+    public FeeDashboardService.Dashboard dashboard(@RequestParam Long academicYearId,
+                                                   @RequestParam(defaultValue = "7") int days) {
+        return dashboard.get(academicYearId, days);
     }
 
     /** What the toolbar badge and the tabs count. */

@@ -326,6 +326,32 @@ class SepayWebhookTest {
                 .andExpect(jsonPath("$.status", is("CANCELLED")));
     }
 
+    @Test
+    void theHomePageCountsWhatWasCollected() throws Exception {
+        String request = createRequest();
+        String code = JsonPath.read(request, "$.orderCode");
+        long amount = ((Number) JsonPath.read(request, "$.amount")).longValue();
+
+        mvc.perform(get("/api/fee_payments/dashboard").param("academicYearId", "" + year).param("days", "7")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totals.collected", is(0.0)))
+                .andExpect(jsonPath("$.daily", hasSize(7)));
+
+        webhook(IDS.incrementAndGet(), amount, code, "in", ACCOUNT).andExpect(status().isOk());
+
+        mvc.perform(get("/api/fee_payments/dashboard").param("academicYearId", "" + year).param("days", "7")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totals.collected", is((double) amount)))
+                .andExpect(jsonPath("$.totals.outstanding", is(0.0)))
+                .andExpect(jsonPath("$.transfer", is((double) amount)))
+                .andExpect(jsonPath("$.cash", is(0)))
+                .andExpect(jsonPath("$.recent[0].studentName", is("Học Sinh Thử")))
+                .andExpect(jsonPath("$.batches[0].collected", is((double) amount)))
+                .andExpect(jsonPath("$.groups[0].name", is("Khối 10")));
+    }
+
     // ---- helpers
 
     /** What the student still owes, in total. */
