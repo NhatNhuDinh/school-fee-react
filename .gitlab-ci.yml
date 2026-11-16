@@ -34,6 +34,10 @@
 #     SEPAY_WEBHOOK_API_KEY  (Masked) the API Key set on the SePay webhook; the
 #                        backend answers SePay 503 until it is set, and 401
 #                        when it differs from the one SePay sends
+#     SEPAY_API_TOKEN  (Masked) a SePay API token (my.sepay.vn, Cấu hình Công ty,
+#                        API Access); lets "Kiểm tra giao dịch" read the bank
+#                        history so a lost webhook can be caught up. Unset, that
+#                        button answers that the token is not configured
 #   Access:
 #     SSH_DEPLOY_KEY  (File) private key of ubuntu@174, edupay's own, comment
 #                     "gitlab-ci edupay" in authorized_keys
@@ -126,7 +130,7 @@ deploy-174:
       # never on a command line, so they show in no log or process list.
       {
         for v in POSTGRES_PASSWORD JWT_SECRET PUBLIC_ORIGIN SMTP_USERNAME SMTP_PASSWORD \
-                 BANK_ACCOUNT_NUMBER BANK_NAME BANK_ACCOUNT_HOLDER SEPAY_WEBHOOK_API_KEY; do
+                 BANK_ACCOUNT_NUMBER BANK_NAME BANK_ACCOUNT_HOLDER SEPAY_WEBHOOK_API_KEY SEPAY_API_TOKEN; do
           eval "val=\${$v:-}"
           [ -z "$val" ] || printf '%s=%s\n' "$v" "$val"
         done
