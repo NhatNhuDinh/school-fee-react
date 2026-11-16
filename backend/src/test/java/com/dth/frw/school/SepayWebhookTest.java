@@ -51,6 +51,9 @@ class SepayWebhookTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private String token;
     private long year;
     private long enrollment;
@@ -259,7 +262,95 @@ class SepayWebhookTest {
                 .andExpect(jsonPath("$[?(@.id == %d)].note".formatted(txId), hasItem("Chuyển nhầm, đã hoàn tiền")));
     }
 
+    @Test
+    void askingAgainForTheSameKhoanThuReturnsTheSameCode() throws Exception {
+        String first = createRequest();
+        String second = createRequest();
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                ((Number) JsonPath.read(first, "$.id")).longValue(), ((Number) JsonPath.read(second, "$.id")).longValue());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                (String) JsonPath.read(first, "$.orderCode"), (String) JsonPath.read(second, "$.orderCode"));
+    }
+
+    @Test
+    void aCounterRequestForWhatAnEmailAskedForUsesTheEmailsCode() throws Exception {
+        long mail = emailRequest("NBKEMAILSHARE0001");
+
+        String request = createRequest();
+        long id = ((Number) JsonPath.read(request, "$.id")).longValue();
+        org.junit.jupiter.api.Assertions.assertEquals("NBKEMAILSHARE0001", (String) JsonPath.read(request, "$.orderCode"));
+
+        int before = receiptCount();
+        webhook(IDS.incrementAndGet(), owed(), "NBKEMAILSHARE0001", "in", ACCOUNT).andExpect(status().isOk());
+
+        // One code, two rows in two tables: the line pays once, through the counter's request, and closes both.
+        org.junit.jupiter.api.Assertions.assertEquals(before + 1, receiptCount());
+        mvc.perform(get("/api/fee_payments/transfer-requests/" + id).param("academicYearId", "" + year)
+                        .header("Authorization", token))
+                .andExpect(jsonPath("$.status", is("PAID")));
+        org.junit.jupiter.api.Assertions.assertEquals("PAID",
+                jdbc.queryForObject("select status from fee_payment_requests where id = ?", String.class, mail));
+    }
+
+    @Test
+    void whenTheCounterRequestIsGoneTheEmailsQrStillPays() throws Exception {
+        long mail = emailRequest("NBKEMAILSHARE0002");
+        String request = createRequest();
+        long id = ((Number) JsonPath.read(request, "$.id")).longValue();
+        mvc.perform(post("/api/fee_payments/transfer-requests/" + id + "/cancel").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"academicYearId\": %d}".formatted(year)))
+                .andExpect(status().isOk());
+
+        int before = receiptCount();
+        webhook(IDS.incrementAndGet(), owed(), "NBKEMAILSHARE0002", "in", ACCOUNT).andExpect(status().isOk());
+
+        org.junit.jupiter.api.Assertions.assertEquals(before + 1, receiptCount());
+        org.junit.jupiter.api.Assertions.assertEquals("PAID",
+                jdbc.queryForObject("select status from fee_payment_requests where id = ?", String.class, mail));
+    }
+
+    @Test
+    void cashTakenAtTheCounterClosesTheOpenTransferRequest() throws Exception {
+        String request = createRequest();
+        long id = ((Number) JsonPath.read(request, "$.id")).longValue();
+
+        mvc.perform(post("/api/fee_payments/collect-student").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"academicYearId\": %d, \"enrollmentId\": %d, \"method\": \"CASH\", \"paidOn\": \"%s\", \"receivableIds\": %s}"
+                                .formatted(year, enrollment, java.time.LocalDate.now(), receivables)))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/fee_payments/transfer-requests/" + id).param("academicYearId", "" + year)
+                        .header("Authorization", token))
+                .andExpect(jsonPath("$.status", is("CANCELLED")));
+    }
+
     // ---- helpers
+
+    /** What the student still owes, in total. */
+    private long owed() throws Exception {
+        String debts = mvc.perform(get("/api/fee_payments/students/" + enrollment + "/debts")
+                        .param("academicYearId", "" + year).header("Authorization", token))
+                .andReturn().getResponse().getContentAsString();
+        List<Number> amounts = JsonPath.read(debts, "$.batches[0].lines[?(@.outstanding > 0)].outstanding");
+        return amounts.stream().mapToLong(Number::longValue).sum();
+    }
+
+    /** An e-mailed request for everything the student owes in the đợt, as the notification feature writes it. */
+    private long emailRequest(String code) throws Exception {
+        long batchStudent = jdbc.queryForObject(
+                "select id from fee_collection_batch_students where enrollment_id = ?", Long.class, enrollment);
+        long organization = jdbc.queryForObject("select organization_id from academic_years where id = ?", Long.class, year);
+        return jdbc.queryForObject("""
+                insert into fee_payment_requests (organization_id, academic_year_id, batch_student_id, order_code,
+                    requested_amount, bank_account_number, bank_code, bank_account_holder, viet_qr_base_url,
+                    viet_qr_template, viet_qr_show_info, status, deadline)
+                values (?, ?, ?, ?, ?, ?, 'TPBank', 'NHU DINH NHAT', 'https://img.vietqr.io', 'compact', true, 'PENDING', ?)
+                returning id
+                """, Long.class, organization, year, batchStudent, code, owed(), ACCOUNT,
+                java.sql.Date.valueOf(java.time.LocalDate.now().plusDays(7)));
+    }
 
     private String createRequest() throws Exception {
         return mvc.perform(post("/api/fee_payments/transfer-requests").header("Authorization", token)

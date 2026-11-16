@@ -24,7 +24,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import {
   cancelReceipts,
-  cancelTransfer,
   checkTransfer,
   collectStudent,
   confirmTransfer,
@@ -71,8 +70,6 @@ export function StudentCollect({
   const [creating, setCreating] = React.useState(false);
   const [checking, setChecking] = React.useState(false);
   const [confirmReceived, setConfirmReceived] = React.useState(false);
-  /** Requests that must not be cancelled when the screen lets go of them: paid, or set aside for later. */
-  const keep = React.useRef<Set<number>>(new Set());
   const [editing, setEditing] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [last, setLast] = React.useState<Receipt[]>([]);
@@ -117,7 +114,6 @@ export function StudentCollect({
   const selectionKey = picked.map((line) => line.receivableId).join(",");
 
   function settled(done: TransferRequest) {
-    keep.current.add(done.id);
     setPaid(done);
     setRequest(null);
     setLast(done.receipts);
@@ -128,7 +124,8 @@ export function StudentCollect({
   }
 
   // A transfer is asked for as soon as there is something to pay and it is the chosen method; changing
-  // the selection asks again (the server cancels the earlier one — its QR is no longer on screen).
+  // the selection asks again. The server answers with the request already out for the same khoản thu, so
+  // reloading or coming back shows the same code.
   React.useEffect(() => {
     if (method !== "TRANSFER" || !student || picked.length === 0 || paid) {
       setRequest(null);
@@ -149,16 +146,6 @@ export function StudentCollect({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, student?.enrollmentId, selectionKey, paid, yearId]);
-
-  // Letting go of an open request (another method, another student, leaving the screen) cancels it, so
-  // unanswered QR codes do not pile up as "waiting" — unless it was set aside or already paid.
-  React.useEffect(() => {
-    const id = request?.id;
-    const kept = keep.current;
-    return () => {
-      if (id && !kept.has(id)) cancelTransfer(yearId, id).catch(() => undefined);
-    };
-  }, [request?.id, yearId]);
 
   // Waiting for the bank: the server pushes "paid" over the socket the moment the transfer is settled, so
   // nothing here asks on a timer. The one request that is still made — on subscribing, on a reconnect and
@@ -225,7 +212,6 @@ export function StudentCollect({
   async function reviewLater() {
     if (!request) return;
     try {
-      keep.current.add(request.id);
       await deferTransfer(yearId, request.id);
       toast.success("Đã chuyển sang Chờ thanh toán", {
         description: "Khi tiền về, hệ thống vẫn tự ghi nhận. Xem ở màn Rà soát giao dịch.",
@@ -233,7 +219,6 @@ export function StudentCollect({
       setRequest(null);
       setStudent(null);
     } catch (error) {
-      keep.current.delete(request.id);
       toast.error(errorMessage(error));
     }
   }

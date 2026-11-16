@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -180,6 +181,25 @@ public class BankTransactionService {
         List<Long> emailIds = named.queryForList(
                 "select id from fee_payment_requests where replace(order_code, '-', '') in (:codes)",
                 new MapSqlParameterSource("codes", codes), Long.class);
+        // A counter request that borrowed an e-mail's code is that e-mail seen twice, not two requests: while the
+        // counter's can still take the money it answers for both, and once it cannot the e-mail answers alone.
+        if (!transferIds.isEmpty() && !emailIds.isEmpty()) {
+            List<Long> answering = new ArrayList<>();
+            List<Long> mailLeft = new ArrayList<>(emailIds);
+            for (Long transferId : transferIds) {
+                Long mail = transferRequests.linkedPaymentRequest(transferId);
+                if (mail != null && mailLeft.contains(mail)) {
+                    if (transferRequests.takesPayment(transferId)) {
+                        mailLeft.remove(mail);
+                        answering.add(transferId);
+                    }
+                } else {
+                    answering.add(transferId);
+                }
+            }
+            transferIds = answering;
+            emailIds = mailLeft;
+        }
         int found = transferIds.size() + emailIds.size();
         if (found == 0) {
             return finish(id, "NEEDS_REVIEW", "UNKNOWN_CODE", "Mã " + String.join(", ", codes) + " không khớp yêu cầu nào",

@@ -90,3 +90,5 @@ databaseChangeLog:
       file: db/changelog/changes/043-create-fee-payments.sql
   - include:
       file: db/changelog/changes/044-create-sepay-transactions.sql
+  - include:
+      file: db/changelog/changes/045-transfer-request-shares-email-code.sql

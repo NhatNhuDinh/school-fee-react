@@ -83,8 +83,10 @@ public class FeeTransferRequestService {
     // ---- counter
 
     /**
-     * Asks for a transfer of everything the named khoản thu still owe. An earlier request of the same
-     * student that nobody set aside is cancelled — its QR is on a screen that has just changed.
+     * Asks for a transfer of everything the named khoản thu still owe. Asking again for the same khoản thu
+     * returns the request already out, so the code does not change under a QR somebody has scanned; an e-mailed
+     * request for exactly the same thing lends its code, so both QR codes agree. A different selection is a new
+     * request, and the earlier ones stay payable until they expire or their khoản thu are collected.
      */
     @Transactional
     public View create(Long yearId, Long enrollmentId, List<Long> receivableIds) {
@@ -106,24 +108,34 @@ public class FeeTransferRequestService {
             throw new ConflictException("Có khoản thu đã được thu hoặc không còn trong đợt thu, hãy tải lại màn hình");
         }
 
-        jdbc.update("update fee_transfer_requests set status = 'CANCELLED' where enrollment_id = ? "
-                + "and academic_year_id = ? and status = 'PENDING'", enrollmentId, yearId);
+        jdbc.queryForObject("select pg_advisory_xact_lock(?)", Object.class, enrollmentId);
+        expireStale(yearId);
+
+        // The same student owing the same things is the same request: opening the screen again, reloading it or
+        // coming back tomorrow shows the code that is already out there, so a QR somebody scanned stays good.
+        Set<Long> wanted = new HashSet<>(ids);
+        for (Long openId : jdbc.queryForList("select id from fee_transfer_requests where enrollment_id = ? "
+                + "and academic_year_id = ? and status in ('PENDING', 'DEFERRED') and expires_at >= now() "
+                + "order by id desc", Long.class, enrollmentId, yearId)) {
+            if (new HashSet<>(lineIds(openId)).equals(wanted)) {
+                return view(yearId, openId);
+            }
+        }
 
         String who = jdbc.query("select coalesce(nullif(full_name, ''), username) from users where id = ?",
                 rs -> rs.next() ? rs.getString(1) : null, CurrentUser.id().orElse(-1L));
         Timestamp expires = Timestamp.from(Instant.now().plus(sepay.requestTtl()));
+
+        // Asking for exactly what an e-mail asked for: the e-mail's own code, so both QR codes read the same.
         Long requestId = null;
-        for (int attempt = 0; attempt < CODE_ATTEMPTS && requestId == null; attempt++) {
-            try {
-                requestId = jdbc.queryForObject("""
-                        insert into fee_transfer_requests (organization_id, academic_year_id, enrollment_id,
-                            order_code, amount, expires_at, created_by_id, created_by_name)
-                        values (?, ?, ?, ?, ?, ?, ?, ?) returning id
-                        """, Long.class, year.getOrganization().getId(), yearId, enrollmentId,
-                        payments.newOrderCode(), amount, expires, CurrentUser.id().orElse(null), who);
-            } catch (DuplicateKeyException e) {
-                // A code collision (1 in 32^14): draw another.
+        for (Object[] mail : emailRequestsFor(yearId, enrollmentId, wanted, amount)) {
+            requestId = insertRequest(year, enrollmentId, (String) mail[1], amount, expires, who, (Long) mail[0]);
+            if (requestId != null) {
+                break;
             }
+        }
+        for (int attempt = 0; attempt < CODE_ATTEMPTS && requestId == null; attempt++) {
+            requestId = insertRequest(year, enrollmentId, payments.newOrderCode(), amount, expires, who, null);
         }
         if (requestId == null) {
             throw new ConflictException("Không tạo được mã chuyển khoản, vui lòng thử lại");
@@ -134,6 +146,46 @@ public class FeeTransferRequestService {
         return view(yearId, requestId);
     }
 
+    /** Null when the code is taken (a 1 in 32^14 draw, or an e-mail code an earlier request already used). */
+    private Long insertRequest(AcademicYear year, Long enrollmentId, String code, BigDecimal amount, Timestamp expires,
+                               String who, Long paymentRequestId) {
+        try {
+            return jdbc.queryForObject("""
+                    insert into fee_transfer_requests (organization_id, academic_year_id, enrollment_id,
+                        order_code, amount, expires_at, created_by_id, created_by_name, payment_request_id)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id
+                    """, Long.class, year.getOrganization().getId(), year.getId(), enrollmentId, code, amount, expires,
+                    CurrentUser.id().orElse(null), who, paymentRequestId);
+        } catch (DuplicateKeyException e) {
+            return null;
+        }
+    }
+
+    /**
+     * The e-mailed requests still waiting that ask for exactly these khoản thu: one đợt, everything the student
+     * still owes in it, for the amount now due. {@code [id, code]} each, newest first.
+     */
+    private List<Object[]> emailRequestsFor(Long yearId, Long enrollmentId, Set<Long> wanted, BigDecimal amount) {
+        List<Object[]> found = new ArrayList<>();
+        jdbc.query("""
+                select p.id, replace(p.order_code, '-', ''), p.batch_student_id, p.requested_amount
+                from fee_payment_requests p
+                join fee_collection_batch_students bs on bs.id = p.batch_student_id
+                where bs.enrollment_id = ? and p.academic_year_id = ? and p.status = 'PENDING'
+                order by p.id desc
+                """, rs -> {
+            if (rs.getBigDecimal(4).compareTo(amount) != 0) {
+                return;
+            }
+            Set<Long> owed = new HashSet<>(jdbc.queryForList("select id from student_fee_receivables "
+                    + "where batch_student_id = ? and receivable_amount > collected_amount", Long.class, rs.getLong(3)));
+            if (owed.equals(wanted)) {
+                found.add(new Object[] {rs.getLong(1), rs.getString(2)});
+            }
+        }, enrollmentId, yearId);
+        return found;
+    }
+
     @Transactional
     public View get(Long yearId, Long id) {
         academicYearService.get(yearId);
@@ -141,13 +193,13 @@ public class FeeTransferRequestService {
         return view(yearId, id);
     }
 
-    /** The requests still waiting for money: just asked for, or set aside to be looked at later. */
+    /** The requests the cashier set aside with "Rà soát sau". A QR that was only shown is not listed; it still pays. */
     @Transactional
     public List<View> waiting(Long yearId) {
         academicYearService.get(yearId);
         expireStale(yearId);
         List<Long> ids = jdbc.queryForList("select id from fee_transfer_requests where academic_year_id = ? "
-                + "and status in ('PENDING', 'DEFERRED') order by created_at desc limit 200", Long.class, yearId);
+                + "and status = 'DEFERRED' order by created_at desc limit 200", Long.class, yearId);
         List<View> result = new ArrayList<>();
         for (Long id : ids) {
             result.add(view(yearId, id));
@@ -158,7 +210,7 @@ public class FeeTransferRequestService {
     public long waitingCount(Long yearId) {
         academicYearService.get(yearId);
         Long count = jdbc.queryForObject("select count(*) from fee_transfer_requests where academic_year_id = ? "
-                + "and status in ('PENDING', 'DEFERRED') and expires_at >= now()", Long.class, yearId);
+                + "and status = 'DEFERRED' and expires_at >= now()", Long.class, yearId);
         return count == null ? 0 : count;
     }
 
@@ -271,10 +323,31 @@ public class FeeTransferRequestService {
                 new MapSqlParameterSource("codes", codes), Long.class);
     }
 
+    /** The e-mailed request whose code this one borrowed; null for a code of its own. */
+    public Long linkedPaymentRequest(long id) {
+        return jdbc.query("select payment_request_id from fee_transfer_requests where id = ?",
+                rs -> rs.next() ? (Long) rs.getObject(1) : null, id);
+    }
+
+    /**
+     * Whether the request can still be answered as a payment. Cancelled and expired ones cannot; a paid one can,
+     * because a transfer the cashier already confirmed by hand is matched to its bank line, not refused.
+     */
+    public boolean takesPayment(long id) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                select status not in ('CANCELLED', 'EXPIRED')
+                       and (status = 'PAID' or expires_at >= now())
+                from fee_transfer_requests where id = ?
+                """, Boolean.class, id));
+    }
+
     // ---- helpers
 
     private void markPaid(long id, String by) {
         jdbc.update("update fee_transfer_requests set status = 'PAID', paid_at = now(), paid_by = ? where id = ?", by, id);
+        // The e-mail whose code this request borrowed is the same demand: it is paid too.
+        jdbc.update("update fee_payment_requests set status = 'PAID' where status = 'PENDING' and id = "
+                + "(select payment_request_id from fee_transfer_requests where id = ?)", id);
         // Whoever asked for this transfer has its QR on screen: tell them (after the commit) instead of letting them poll.
         Long asker = jdbc.queryForObject("select created_by_id from fee_transfer_requests where id = ?", Long.class, id);
         if (asker != null) {
@@ -282,9 +355,20 @@ public class FeeTransferRequestService {
         }
     }
 
+    /**
+     * Closes what can no longer be paid: a request past its time, and one whose khoản thu were collected some
+     * other way (cash, another request) — its QR would only ever end on the review screen.
+     */
     private void expireStale(Long yearId) {
         jdbc.update("update fee_transfer_requests set status = 'EXPIRED' where academic_year_id = ? "
                 + "and status in ('PENDING', 'DEFERRED') and expires_at < now()", yearId);
+        jdbc.update("""
+                update fee_transfer_requests q set status = 'CANCELLED'
+                where q.academic_year_id = ? and q.status in ('PENDING', 'DEFERRED')
+                  and exists (select 1 from fee_transfer_request_lines l
+                              join student_fee_receivables r on r.id = l.receivable_id
+                              where l.request_id = q.id and r.collected_amount >= r.receivable_amount)
+                """, yearId);
     }
 
     private Map<String, Object> lock(Long yearId, Long id) {

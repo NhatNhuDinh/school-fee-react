@@ -23,7 +23,7 @@ public record SepayProperties(Webhook webhook, String apiToken, String apiBaseUr
         webhook = webhook == null ? new Webhook(null, null, null) : webhook;
         apiBaseUrl = apiBaseUrl == null || apiBaseUrl.isBlank() ? "https://userapi.sepay.vn/v2" : apiBaseUrl;
         checkWindowDays = checkWindowDays == null || checkWindowDays < 1 ? 3 : checkWindowDays;
-        requestTtl = requestTtl == null ? Duration.ofHours(48) : requestTtl;
+        requestTtl = requestTtl == null ? Duration.ofDays(7) : requestTtl;
     }
 
     /**
