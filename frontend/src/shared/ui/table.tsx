@@ -5,26 +5,23 @@ import { cn } from "@/shared/lib/utils";
 /**
  * The data table's primitives.
  *
- * Two conventions here are the whole difference between a business table and
- * a styled `<table>`:
+ * This is Fluent 2's data grid, measured against its own source rather than
+ * remembered:
  *
- * **The header is a label, not a heading.** `text-overline` — 11px, uppercase,
- * semibold, tracked out — on `--surface-subtle`, one step off the card. It is
- * deliberately quieter than the data underneath it, because in a table of
- * forty rows the column names are read once and the values are read forty
- * times, and the band is what keeps the labels from being mistaken for a first
- * row of data once the table is scrolled.
+ * **The header is the same type as the body** — regular weight, the body's
+ * ink colour, no band behind it; only a hairline (`border`) under the row sets
+ * it apart. It is 32px tall (`h-8`). A sortable header gets a hover fill from
+ * `DataTable`; there is nothing else to it. (`--table-header` is the card
+ * colour in the Fluent preset, and a brand tint in the older ones.)
  *
- * The tint belongs to the header band and to nothing else around it: the
- * filter zone above it and the pager below it sit on the card itself, so the
- * panel reads as one sheet with one strip across it rather than three stacked
- * blocks.
+ * **Rows have a fixed height, not a padded one.** `h-11` (44px, plus the 1px
+ * hairline) on the cell rather than vertical padding alone means a row with a
+ * chip in it is exactly as tall as a row with plain text, so the eye can track
+ * across the table without the baseline moving. Cells take 8px each side.
+ * Heights are `calc(var(--spacing) * n)`, so they follow the density setting.
  *
- * **Rows have a fixed height, not a padded one.** `h-12` on the cell rather
- * than vertical padding alone means a row with a chip in it is exactly as tall
- * as a row with plain text, so the eye can track across the table without the
- * baseline moving. Both heights are `calc(var(--spacing) * n)`, so they follow
- * the density setting like everything else.
+ * **Hover is the subtle fill (`accent`); a selected row is the brand wash**
+ * (`brand-subtle`, Fluent's BrandBackground2) with no bar beside it.
  */
 function Table({
   className,
@@ -106,8 +103,8 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-border transition-colors",
-        "hover:bg-accent/40 data-[state=selected]:bg-accent/60",
+        "border-b border-border transition-colors duration-(--dur-faster)",
+        "hover:bg-accent data-[state=selected]:bg-brand-subtle",
         className
       )}
       {...props}
@@ -136,8 +133,8 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        "text-overline text-table-header-foreground bg-table-header",
-        "h-11 px-3 align-middle whitespace-nowrap",
+        "text-table-header-foreground bg-table-header text-sm font-normal",
+        "h-8 px-2 align-middle whitespace-nowrap",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         ALIGN[align],
         className
@@ -158,7 +155,7 @@ function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "h-12 px-3 py-2 align-middle whitespace-nowrap",
+        "h-11 px-2 py-1 align-middle whitespace-nowrap",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         ALIGN[align],
         className

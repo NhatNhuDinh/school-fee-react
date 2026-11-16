@@ -27,6 +27,13 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-pressed: var(--primary-pressed);
+  /* The brand as text or a line (`text-brand`, `border-brand`). In Fluent's
+     dark mode the brand fill is deeper than the brand text, so the two are
+     different colours there — see theme.css §10. */
+  --color-brand: var(--brand-foreground);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-subtle-hover: var(--brand-subtle-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -74,6 +81,27 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Fluent 2: the states a control passes through (theme.css §9). A disabled
+     control takes its own colours rather than being faded with opacity. */
+  --color-disabled: var(--disabled-bg);
+  --color-disabled-foreground: var(--disabled-fg);
+  --color-disabled-line: var(--disabled-line);
+  --color-stroke-hover: var(--stroke-hover);
+  --color-stroke-pressed: var(--stroke-pressed);
+  --color-stroke-accessible: var(--stroke-accessible);
+  --color-stroke-accessible-hover: var(--stroke-accessible-hover);
+  --color-stroke-brand: var(--stroke-brand);
+  --color-pressed: var(--pressed-bg);
+  --color-selected: var(--selected-bg);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-link-pressed: var(--link-pressed);
+  --color-compound: var(--compound-bg);
+  --color-compound-hover: var(--compound-bg-hover);
+  --color-compound-pressed: var(--compound-bg-pressed);
+  --color-on-compound: var(--on-compound);
+  --color-rating: var(--rating);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -99,21 +127,51 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+  /* Fluent's 8px for a card, a dialog or a flyout, at the default radius. */
+  --radius-card: calc(var(--radius) + 2px);
 
   --shadow-e1: var(--elevation-1);
   --shadow-e2: var(--elevation-2);
   --shadow-e3: var(--elevation-3);
   --shadow-e4: var(--elevation-4);
+  --shadow-fl-2: var(--shadow-fl-2);
+  --shadow-fl-4: var(--shadow-fl-4);
+  --shadow-fl-8: var(--shadow-fl-8);
+  --shadow-fl-16: var(--shadow-fl-16);
+  --shadow-fl-28: var(--shadow-fl-28);
+  --shadow-fl-64: var(--shadow-fl-64);
+
+  /* Fluent's type ramp: size / line height. Body text is `text-body1`. */
+  --text-caption2: 10px;
+  --text-caption2--line-height: 14px;
+  --text-caption1: 12px;
+  --text-caption1--line-height: 16px;
+  --text-body1: 14px;
+  --text-body1--line-height: 20px;
+  --text-subtitle2: 16px;
+  --text-subtitle2--line-height: 22px;
+  --text-subtitle1: 20px;
+  --text-subtitle1--line-height: 28px;
+  --text-title3: 24px;
+  --text-title3--line-height: 32px;
+  --text-title2: 28px;
+  --text-title2--line-height: 36px;
+  --text-title1: 32px;
+  --text-title1--line-height: 40px;
+  --text-large-title: 40px;
+  --text-large-title--line-height: 52px;
 
   --ease-settle: var(--ease-settle);
   --ease-standard: var(--ease-standard);
 
-  /* Inter Variable, self-hosted from `@fontsource-variable/inter` (imported in
-     App.tsx) — bundled with the app, so no request to a third-party host and
-     nothing to fail on a closed network. The system stack behind it is only
-     for the moment before the font file arrives. */
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Fluent's own stack: Segoe UI where it exists (every Windows machine a
+     school counter runs on). Inter Variable, self-hosted from
+     `@fontsource-variable/inter` (imported in App.tsx), is what a Mac or a
+     phone gets instead — bundled with the app, so no request to a third-party
+     host and nothing to fail on a closed network. */
+  --font-sans: "Segoe UI", "Segoe UI Web (West European)", "Inter Variable",
+    -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", ui-sans-serif,
+    system-ui, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
     "Courier New", monospace;
 }
@@ -166,12 +224,13 @@
     color-scheme: dark;
   }
 
-  /* One visible focus ring for the whole application, on the token that owns
-     it. Anything that draws its own focus treatment overrides this; anything
-     that forgot to still gets a ring rather than nothing. */
+  /* One visible focus ring for the whole application: Fluent's two-line ring
+     (see `focus-ring`). Anything that draws its own focus treatment overrides
+     this; anything that forgot to still gets a ring rather than nothing. */
   :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    outline: var(--stroke-thick) solid var(--focus-inner);
+    outline-offset: 1px;
+    box-shadow: 0 0 0 1px var(--focus-outer);
   }
 
   ::selection {
@@ -216,11 +275,64 @@
    it is a utility, a new screen that needs a group label gets the right one
    by name instead of inventing an eleventh size. */
 @utility text-overline {
-  font-size: 11px;
+  /* Fluent has no small-caps style; its label is Caption 1 Strong. The name is
+     kept — it is on about fifteen labels — but it is no longer uppercase. */
+  font-size: 12px;
   line-height: 16px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+}
+
+/* The height of a control. `h-control` follows the density setting (24, 32 or
+   40px); the sized ones are for a control that is always one size. They are
+   utilities because Tailwind has no theme namespace for a fixed height. */
+@utility h-control {
+  height: var(--control-h);
+}
+@utility min-h-control {
+  min-height: var(--control-h);
+}
+@utility size-control {
+  width: var(--control-h);
+  height: var(--control-h);
+}
+@utility h-control-sm {
+  height: var(--control-h-sm);
+}
+@utility h-control-md {
+  height: var(--control-h-md);
+}
+@utility h-control-lg {
+  height: var(--control-h-lg);
+}
+@utility size-control-sm {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+}
+@utility size-control-md {
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+}
+
+/* Fluent's focus: two lines, not one. A 2px stroke in the "inner" colour,
+   one pixel clear of the control, and a 1px stroke of the opposite colour in
+   that gap — so the ring reads on a light surface and on a dark one. It is the
+   global `:focus-visible` below; this utility is for a control that must show
+   it on `:focus` too (a text field's wrapper), or that resets the outline. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: var(--stroke-thick) solid var(--focus-inner);
+    outline-offset: 1px;
+    box-shadow: 0 0 0 1px var(--focus-outer);
+  }
+}
+
+/* The focus of a text field: not a ring but the bottom edge turning brand
+   blue and thickening to 2px. Put it on the element that draws the edge. */
+@utility focus-underline {
+  &:focus-within {
+    border-bottom-color: var(--stroke-brand);
+    box-shadow: inset 0 calc(var(--stroke-thick) * -1) 0 0 var(--stroke-brand);
+  }
 }
 
 /* Slim, self-effacing scrollbar for the sidebar and any inner scroll area. */

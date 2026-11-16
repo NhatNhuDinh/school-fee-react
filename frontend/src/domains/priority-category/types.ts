@@ -28,7 +28,7 @@ export type ApplicationPeriod =
 
 export const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
   PERCENT: "Phần trăm (%)",
-  AMOUNT: "Số tiền (đ)",
+  AMOUNT: "Số tiền (VND)",
 };
 
 export const APPLICATION_PERIOD_LABELS: Record<ApplicationPeriod, string> = {
@@ -49,10 +49,10 @@ export type PriorityCategoryFormValues = {
   toMonth: string;
 };
 
-/** `50 %` or `1.000.000 đ`, the way the list and the filter show a discount. */
+/** `50 %` or `1.000.000 VND`, the way the list and the filter show a discount. */
 export function formatDiscount(type: DiscountType, value: number): string {
   const number = new Intl.NumberFormat("vi-VN").format(value);
-  return type === "PERCENT" ? `${number} %` : `${number} đ`;
+  return type === "PERCENT" ? `${number} %` : `${number} VND`;
 }
 
 /** `Cả năm`, or `Tháng 9 – 12` for a custom period. */

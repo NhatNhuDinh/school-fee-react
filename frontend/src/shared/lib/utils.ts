@@ -19,6 +19,17 @@ import { extendTailwindMerge } from "tailwind-merge";
  * whole type style, the other sets a colour, and neither should evict the
  * other. Any future custom utility whose name starts with a Tailwind namespace
  * belongs in this list for the same reason.
+ *
+ * The Fluent additions are the same problem in another shape. `h-control` is a
+ * height that `tailwind-merge` does not know is a height, so
+ *
+ *     cn("h-control", "h-auto")
+ *
+ * kept *both*, and whichever the stylesheet declares last won — the field's own
+ * height beat the caller's override, and a bare input inside a search box
+ * stretched to the box's full height. They are added to the groups they belong
+ * to (height, min-height, size, font size, corner radius), so a caller's
+ * override evicts them as it would evict `h-9`.
  */
 // The type parameter is how a *new* group id is declared; `extend.classGroups`
 // otherwise only accepts the ids tailwind-merge already knows.
@@ -26,6 +37,26 @@ const twMerge = extendTailwindMerge<"dth-type">({
   extend: {
     classGroups: {
       "dth-type": ["text-overline"],
+      h: [{ h: ["control", "control-sm", "control-md", "control-lg"] }],
+      "min-h": [{ "min-h": ["control"] }],
+      size: [{ size: ["control", "control-sm", "control-md", "control-lg"] }],
+      // Fluent's type ramp (index.css `--text-*`).
+      "font-size": [
+        {
+          text: [
+            "caption2",
+            "caption1",
+            "body1",
+            "subtitle2",
+            "subtitle1",
+            "title3",
+            "title2",
+            "title1",
+            "large-title",
+          ],
+        },
+      ],
+      rounded: [{ rounded: ["card"] }],
     },
   },
 });

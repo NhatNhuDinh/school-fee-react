@@ -123,7 +123,7 @@ export function ClassCollect({
       setLast(result.receipts);
       setTicked(new Set());
       toast.success("Đã thu tiền", {
-        description: `${result.studentCount} học sinh · ${formatNumber(result.total)} đ`,
+        description: `${result.studentCount} học sinh · ${formatNumber(result.total)} VND`,
       });
       if (thenPrint) printReceipts(result.receipts);
       setReload((n) => n + 1);
@@ -262,7 +262,7 @@ export function ClassCollect({
                 </TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">{formatNumber(totals.receivable)}</TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">{formatNumber(totals.collected)}</TableCell>
-                <TableCell className="text-primary text-right font-semibold tabular-nums">{formatNumber(totals.outstanding)}</TableCell>
+                <TableCell className="text-brand text-right font-semibold tabular-nums">{formatNumber(totals.outstanding)}</TableCell>
                 <TableCell />
               </TableRow>
             </TableFooter>
@@ -301,7 +301,7 @@ export function ClassCollect({
           <Button
             type="button"
             variant="outline"
-            className="border-primary text-primary hover:text-primary"
+            className="border-primary text-brand hover:text-brand"
             disabled={!canCollect}
             onClick={() => setConfirm({ thenPrint: true })}
           >
@@ -316,7 +316,7 @@ export function ClassCollect({
       <ConfirmDialog
         open={confirm !== null}
         title="Thu tiền theo lớp?"
-        description={`Thu tiền mặt của ${chosenStudents} học sinh thuộc ${chosen.length} lớp trong “${batchName}”, tổng ${formatNumber(chosenAmount)} đ. Mỗi học sinh nhận một phiếu thu cho toàn bộ số còn nợ.`}
+        description={`Thu tiền mặt của ${chosenStudents} học sinh thuộc ${chosen.length} lớp trong “${batchName}”, tổng ${formatNumber(chosenAmount)} VND. Mỗi học sinh nhận một phiếu thu cho toàn bộ số còn nợ.`}
         confirmLabel="Thu tiền"
         busy={busy}
         onConfirm={() => confirm && collect(confirm.thenPrint)}

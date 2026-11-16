@@ -49,7 +49,7 @@ export function AcademicYearSelect() {
     >
       <SelectTrigger
         aria-label="Năm học"
-        className="h-9 w-46 gap-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2"
+        className="w-46 gap-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2"
       >
         <CalendarDays className="text-muted-foreground size-4 shrink-0" />
         <SelectValue
@@ -67,7 +67,7 @@ export function AcademicYearSelect() {
             {years.length > 0 && <SelectSeparator />}
             <SelectItem
               value={CREATE_VALUE}
-              className="text-primary font-semibold"
+              className="text-brand font-semibold"
             >
               <Plus className="size-4" />
               Thêm năm học

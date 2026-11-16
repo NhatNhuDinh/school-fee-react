@@ -144,7 +144,7 @@ export function BatchItemPicker({ rows, selected, onToggle, onQuantity, empty, c
                     min={1}
                     inputMode="numeric"
                     aria-label={`Số lượng ${row.name}`}
-                    className="h-8 w-20 tabular-nums"
+                    className="w-20 tabular-nums"
                     value={quantity}
                     disabled={!checked || !row.quantityEditable}
                     title={row.quantityEditable ? undefined : `Tính theo ${row.unitName}, số lượng luôn là 1`}
@@ -195,7 +195,7 @@ export function PreviewStrip({
         </div>
         <div className="text-end">
           <div className="text-muted-foreground text-xs">{label}</div>
-          <div className="text-primary text-2xl leading-tight font-bold tabular-nums">
+          <div className="text-brand text-2xl leading-tight font-bold tabular-nums">
             {problems.length > 0 ? "Chưa tính được" : formatCurrency(preview?.receivableAmount ?? 0)}
           </div>
         </div>

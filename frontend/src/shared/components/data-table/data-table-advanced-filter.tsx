@@ -279,7 +279,7 @@ export function DataTableAdvancedFilter<TData extends BaseRecord>({
                     size="icon"
                     aria-label={`Xóa ${field.label}`}
                     disabled={!entry.value}
-                    className={cn("h-8", "w-8", "shrink-0")}
+                    className="shrink-0"
                     onClick={() => patch(field.field, { value: "" })}
                   >
                     <X className={cn("h-3.5", "w-3.5")} />
@@ -430,7 +430,7 @@ export function DataTableFilterChips<TData extends BaseRecord>({
       <Button
         variant="ghost"
         size="sm"
-        className={cn("h-7", "text-xs", "text-muted-foreground")}
+        className="text-muted-foreground"
         onClick={() => setColumnFilters([])}
       >
         Xóa tất cả

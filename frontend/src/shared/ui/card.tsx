@@ -11,8 +11,9 @@ import { cn } from "@/shared/lib/utils";
  * whole row wider than the viewport instead of scrolling its own table.
  *
  * The card carries `--card` rather than `--background`, so it reads as paper
- * laid on the page's tinted surface. That separation is doing the work the
- * elevation would otherwise have to do, which is why `shadow-e1` is enough.
+ * laid on the page's tinted surface. Fluent's card is a hairline edge, an 8px
+ * corner (`rounded-card`) and the `shadow4` elevation — which is why the card
+ * stays quiet and does not need more.
  */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -20,7 +21,7 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="card"
       className={cn(
         "bg-card text-card-foreground flex min-w-0 flex-col gap-6",
-        "rounded-lg border border-border py-6 shadow-e1",
+        "rounded-card border-border shadow-fl-4 border py-6",
         className
       )}
       {...props}

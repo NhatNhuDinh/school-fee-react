@@ -51,12 +51,11 @@ export function formatNumber(value?: number | null): string {
   return value.toLocaleString(LOCALE);
 }
 
-/** Vietnamese dong, which has no minor unit in practice. */
+/**
+ * Vietnamese dong, written `1.534.528 VND`: the code after the figure, not the ₫ / đ sign `Intl`
+ * would print. It has no minor unit in practice, so no decimals.
+ */
 export function formatCurrency(value?: number | null): string {
   if (value === null || value === undefined || Number.isNaN(value)) return EMPTY;
-  return value.toLocaleString(LOCALE, {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  });
+  return `${Math.round(value).toLocaleString(LOCALE)} VND`;
 }

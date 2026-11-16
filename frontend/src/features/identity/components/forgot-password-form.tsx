@@ -60,7 +60,7 @@ export const ForgotPasswordForm = () => {
         <CardHeader className={cn("px-0")}>
           <CardTitle
             className={cn(
-              "text-primary",
+              "text-brand",
               "text-3xl",
               "font-semibold"
             )}

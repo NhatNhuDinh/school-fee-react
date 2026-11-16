@@ -23,7 +23,7 @@ export function NoAcademicYear() {
 
   return (
     <div className="flex min-h-[70dvh] flex-col items-center justify-center gap-4 px-4 text-center">
-      <div className="bg-primary/10 text-primary flex size-16 items-center justify-center rounded-full">
+      <div className="bg-primary/10 text-brand flex size-16 items-center justify-center rounded-full">
         <CalendarDays className="size-8" />
       </div>
       <div className="flex flex-col gap-1.5">

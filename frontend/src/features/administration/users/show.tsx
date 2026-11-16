@@ -74,7 +74,7 @@ export const UserShow = () => {
         <LoadingOverlay loading={isLoading}>
           <div className="flex flex-wrap items-start gap-x-6 gap-y-4 px-6">
             <Avatar className="size-12 shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+              <AvatarFallback className="bg-primary/10 text-brand text-sm font-semibold">
                 {initials(record?.fullName)}
               </AvatarFallback>
             </Avatar>

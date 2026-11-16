@@ -150,7 +150,7 @@ function UserMenu() {
       >
         <Avatar className="size-9">
           {user?.avatar && <AvatarImage src={user.avatar} alt={name} />}
-          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-brand">
             {getInitials(name)}
           </AvatarFallback>
         </Avatar>

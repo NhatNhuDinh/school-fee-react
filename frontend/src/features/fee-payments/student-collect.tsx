@@ -118,7 +118,7 @@ export function StudentCollect({
     setRequest(null);
     setLast(done.receipts);
     toast.success(done.paidBy === "BANK" ? "Đã nhận tiền chuyển khoản" : "Đã ghi nhận tiền chuyển khoản", {
-      description: `${done.receipts.map((r) => r.receiptCode).join(", ")} · ${formatNumber(done.amount)} đ`,
+      description: `${done.receipts.map((r) => r.receiptCode).join(", ")} · ${formatNumber(done.amount)} VND`,
     });
     setReload((n) => n + 1);
   }
@@ -244,7 +244,7 @@ export function StudentCollect({
       setLast(result.receipts);
       toast.success(
         method === "TRANSFER" ? "Đã ghi nhận tiền chuyển khoản" : "Đã thu tiền",
-        { description: `${result.receipts.map((r) => r.receiptCode).join(", ")} · ${formatNumber(result.total)} đ` }
+        { description: `${result.receipts.map((r) => r.receiptCode).join(", ")} · ${formatNumber(result.total)} VND` }
       );
       if (thenPrint) printReceipts(result.receipts);
       setReload((n) => n + 1);
@@ -350,7 +350,7 @@ export function StudentCollect({
                           {batch.scopeLabel ? ` · ${batch.scopeLabel}` : ""}
                         </span>
                         <span className="text-muted-foreground block">
-                          {paid ? "Đã thu đủ" : `Còn phải thu: ${formatNumber(batch.outstanding)} đ`}
+                          {paid ? "Đã thu đủ" : `Còn phải thu: ${formatNumber(batch.outstanding)} VND`}
                         </span>
                       </span>
                     </label>
@@ -427,7 +427,7 @@ export function StudentCollect({
                   Thành tiền: <b className="text-foreground text-lg">{formatNumber(receivable)}</b>
                 </span>
                 <span className="text-muted-foreground">
-                  Còn phải thu: <b className="text-primary text-lg">{formatNumber(amount)}</b>
+                  Còn phải thu: <b className="text-brand text-lg">{formatNumber(amount)}</b>
                 </span>
                 <span className="text-muted-foreground">
                   Đã thu: <b className="text-foreground text-lg">{formatNumber(collected)}</b>
@@ -458,7 +458,7 @@ export function StudentCollect({
               </div>
               <div className="grid gap-1.5">
                 <Label className="text-muted-foreground">Số tiền thu</Label>
-                <div className="bg-muted/50 text-primary rounded-md border px-3 py-2.5 text-right text-xl font-bold tabular-nums">
+                <div className="bg-muted/50 text-brand rounded-md border px-3 py-2.5 text-right text-xl font-bold tabular-nums">
                   {formatNumber(amount)}
                 </div>
               </div>
@@ -492,7 +492,7 @@ export function StudentCollect({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="border-primary text-primary hover:text-primary w-fit"
+                      className="border-primary text-brand hover:text-brand w-fit"
                       disabled={checking}
                       onClick={checkNow}
                     >
@@ -557,7 +557,7 @@ export function StudentCollect({
             <Button
               type="button"
               variant="outline"
-              className="border-primary text-primary hover:text-primary"
+              className="border-primary text-brand hover:text-brand"
               disabled={!canCollect}
               onClick={() => collect(true)}
             >
@@ -580,7 +580,7 @@ export function StudentCollect({
       <ConfirmDialog
         open={confirmReceived}
         title="Xác nhận đã nhận tiền?"
-        description={`Ghi nhận ${formatNumber(request?.amount ?? 0)} đ chuyển khoản của ${student?.fullName ?? "học sinh"} khi chưa thấy giao dịch từ ngân hàng. Chỉ bấm khi bạn đã thấy tiền về tài khoản. Nếu tiền về sau, hệ thống sẽ tự khớp với phiếu này.`}
+        description={`Ghi nhận ${formatNumber(request?.amount ?? 0)} VND chuyển khoản của ${student?.fullName ?? "học sinh"} khi chưa thấy giao dịch từ ngân hàng. Chỉ bấm khi bạn đã thấy tiền về tài khoản. Nếu tiền về sau, hệ thống sẽ tự khớp với phiếu này.`}
         confirmLabel="Đã nhận tiền"
         busy={busy}
         onConfirm={receivedByHand}
@@ -623,7 +623,7 @@ function PaidCard({
     <div className="grid gap-2 rounded-md border border-success/40 bg-success-subtle p-3 text-sm">
       <p className="flex items-center gap-2 font-semibold">
         <span className="bg-success size-2 rounded-full" />
-        Đã nhận {formatNumber(request.amount)} đ
+        Đã nhận {formatNumber(request.amount)} VND
       </p>
       <p className="text-muted-foreground text-xs">
         {request.paidBy === "BANK" ? "Ngân hàng đã báo tiền về, hệ thống tự ghi nhận." : "Thu ngân đã xác nhận đã nhận tiền."}

@@ -440,7 +440,7 @@ export function NotificationComposeDialog({ batch, onClose, onCreated }: Props) 
                       · còn phải thu {formatCurrency(selectedTotal)}
                     </span>
                   </span>
-                  <button type="button" className="text-primary font-medium" onClick={() => setStep(1)}>
+                  <button type="button" className="text-brand font-medium" onClick={() => setStep(1)}>
                     Chỉnh sửa
                   </button>
                 </div>
@@ -680,7 +680,7 @@ function GradeTree({
   const rowClass = (active: boolean) =>
     cn(
       "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[13px] transition-colors",
-      active ? "bg-muted text-primary font-semibold" : "hover:bg-muted/60"
+      active ? "bg-muted text-brand font-semibold" : "hover:bg-muted/60"
     );
 
   return (

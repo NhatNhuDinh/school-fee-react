@@ -72,26 +72,20 @@ function navRowClass({
   isCollapsed?: boolean;
 }) {
   return cn(
-    "group/nav relative flex w-full items-center gap-3 rounded-md",
-    "text-sm font-medium transition-colors duration-150",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-    isCollapsed ? "h-10 justify-center px-0" : "px-3 py-2",
+    "group/nav focus-ring relative flex w-full items-center gap-3 rounded-md",
+    "text-sm transition-colors duration-(--dur-faster)",
+    isCollapsed ? "h-10 justify-center px-0" : "px-2.5 py-2.5",
     isSelected
       ? [
-          // The active row is a solid pill in the rail's own hover colour, and
-          // the *icon* carries the accent rather than the label. Tinting the
-          // label instead is what makes an active row read as a link rather
-          // than a position — and on the light rail there is no accent that
-          // stays legible as body text on a pale surface anyway.
-          "bg-sidebar-accent text-sidebar-accent-foreground",
+          // Fluent's selected item has no fill. It is told apart by the type
+          // going semibold, the icon taking the brand colour, and a 4×20px
+          // brand bar beside it — not the full height of the row.
+          "text-sidebar-foreground font-semibold",
           "[&_svg]:text-sidebar-primary",
-          // The tick in the gutter. It is what survives the row being read
-          // peripherally, when the fill is too quiet to register.
-          "before:absolute before:inset-y-1.5 before:left-0 before:w-[3px]",
-          "before:rounded-r-full before:bg-sidebar-primary",
-          isCollapsed && "before:inset-y-2",
+          "before:absolute before:top-1/2 before:left-0 before:h-5 before:w-1",
+          "before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary",
         ]
-      : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+      : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground"
   );
 }
 
@@ -502,7 +496,7 @@ function NavIcon({
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center [&_svg]:size-4",
+        "flex shrink-0 items-center justify-center [&_svg]:size-5",
         isSelected ? "text-sidebar-primary" : "text-current"
       )}
     >

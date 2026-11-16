@@ -122,7 +122,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
     try {
       const result = await checkTransfer(yearId, request.id);
       if (result.request.status === "PAID") {
-        toast.success("Đã nhận tiền", { description: `${request.studentName} · ${formatNumber(request.amount)} đ` });
+        toast.success("Đã nhận tiền", { description: `${request.studentName} · ${formatNumber(request.amount)} VND` });
       } else {
         toast.info("Chưa thấy khoản chuyển cho mã này", { description: describeCheck(result.summary) });
       }
@@ -190,7 +190,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
               >
                 {item.label}
                 {item.count !== undefined ? (
-                  <span className={cn("tabular-nums", tab === item.key && item.count > 0 && "text-primary font-bold")}>
+                  <span className={cn("tabular-nums", tab === item.key && item.count > 0 && "text-brand font-bold")}>
                     {item.count}
                   </span>
                 ) : null}
@@ -200,7 +200,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
           <Button
             type="button"
             variant="outline"
-            className="border-primary text-primary hover:text-primary ms-auto"
+            className="border-primary text-brand hover:text-brand ms-auto"
             disabled={checking || !canWrite?.can}
             onClick={checkAll}
           >
@@ -258,7 +258,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
                     <TableCell>{request.status === "DEFERRED" ? "Rà soát sau" : "Đang chờ tiền về"}</TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">{formatNumber(request.amount)}</TableCell>
                     <TableCell>
-                      <span className="text-primary flex gap-3 text-sm font-semibold">
+                      <span className="text-brand flex gap-3 text-sm font-semibold">
                         <button type="button" className="hover:underline" onClick={() => checkOne(request)}>
                           Kiểm tra
                         </button>
@@ -296,7 +296,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
                     <TableCell className="text-right font-semibold tabular-nums">{formatNumber(row.amount)}</TableCell>
                     <TableCell>
                       {tab === "review" ? (
-                        <span className="text-primary flex gap-3 text-sm font-semibold">
+                        <span className="text-brand flex gap-3 text-sm font-semibold">
                           {canWrite?.can ? (
                             <>
                               <button type="button" className="hover:underline" onClick={() => setAssigning(row)}>
@@ -356,7 +356,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
       <ConfirmDialog
         open={receiving !== null}
         title="Xác nhận đã nhận tiền?"
-        description={`Ghi nhận ${formatNumber(receiving?.amount ?? 0)} đ chuyển khoản của ${receiving?.studentName ?? ""} khi chưa thấy giao dịch từ ngân hàng. Chỉ bấm khi bạn đã thấy tiền về tài khoản.`}
+        description={`Ghi nhận ${formatNumber(receiving?.amount ?? 0)} VND chuyển khoản của ${receiving?.studentName ?? ""} khi chưa thấy giao dịch từ ngân hàng. Chỉ bấm khi bạn đã thấy tiền về tài khoản.`}
         confirmLabel="Đã nhận tiền"
         busy={busy}
         onConfirm={receiveByHand}
@@ -451,7 +451,7 @@ function AssignDialog({
         {row ? (
           <div className="grid gap-4">
             <p className="text-sm">
-              Giao dịch <b>{formatNumber(row.amount)} đ</b> lúc {formatDateTime(row.time)}
+              Giao dịch <b>{formatNumber(row.amount)} VND</b> lúc {formatDateTime(row.time)}
               {row.content ? <span className="text-muted-foreground"> · “{row.content}”</span> : null}
             </p>
             <StudentSearch
@@ -489,7 +489,7 @@ function AssignDialog({
               )}
             </div>
             <p className={cn("text-sm", exact ? "text-success-text" : "text-destructive")}>
-              Đã chọn {formatNumber(total)} đ / giao dịch {formatNumber(row.amount)} đ
+              Đã chọn {formatNumber(total)} VND / giao dịch {formatNumber(row.amount)} VND
               {exact ? " — khớp." : " — các khoản đã chọn phải đúng bằng số tiền giao dịch (hệ thống không thu một phần)."}
             </p>
           </div>
@@ -544,7 +544,7 @@ function IgnoreDialog({
           <DialogTitle>Bỏ qua giao dịch này?</DialogTitle>
         </DialogHeader>
         <p className="text-sm">
-          {row ? `${formatNumber(row.amount)} đ lúc ${formatDateTime(row.time)}. ` : ""}
+          {row ? `${formatNumber(row.amount)} VND lúc ${formatDateTime(row.time)}. ` : ""}
           Giao dịch được giữ lại ở mục Đã xử lý, không tạo phiếu thu.
         </p>
         <Textarea

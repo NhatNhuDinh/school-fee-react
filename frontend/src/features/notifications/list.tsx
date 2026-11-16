@@ -156,8 +156,7 @@ export const NotificationList = () => {
             {!row.original.read && (
               <Button
                 variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
+                className="gap-1.5"
                 onClick={() => void markRead(row.original.id)}
               >
                 <CheckCheckIcon className="size-3.5" />

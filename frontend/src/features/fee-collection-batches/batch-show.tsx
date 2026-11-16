@@ -203,14 +203,14 @@ export const FeeCollectionBatchShow = () => {
 
       <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
         <Tabs value={tab} onValueChange={(value) => setTab(value as "students" | "items" | "notifications")} className="relative shrink-0 gap-0">
-          <TabsList className="h-auto w-full justify-start rounded-none border-b bg-transparent p-0 px-3">
-            <TabsTrigger value="students" className={tabClass}>
+          <TabsList className="w-full justify-start border-b px-3">
+            <TabsTrigger value="students">
               Học sinh
             </TabsTrigger>
-            <TabsTrigger value="items" className={tabClass}>
+            <TabsTrigger value="items">
               Khoản thu
             </TabsTrigger>
-            <TabsTrigger value="notifications" className={tabClass}>
+            <TabsTrigger value="notifications">
               Thông báo
             </TabsTrigger>
           </TabsList>
@@ -242,9 +242,6 @@ export const FeeCollectionBatchShow = () => {
     </ListView>
   );
 };
-
-const tabClass =
-  "flex-none data-[state=active]:text-primary data-[state=active]:border-primary rounded-none border-0 border-b-2 border-transparent px-3 py-2.5 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
 function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (

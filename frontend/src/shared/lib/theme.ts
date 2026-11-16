@@ -5,7 +5,7 @@
  * derives every semantic colour and spacing token from them:
  *
  *   mode         -> `.dark` class          light | dark | system
- *   colorPreset  -> `data-color-preset`    navy | blue | …
+ *   colorPreset  -> `data-color-preset`    fluent | navy | blue | …
  *   radius       -> `data-radius`          none | sm | md | lg | xl
  *   sidebarTone  -> `data-sidebar-tone`    dark | light
  *   density      -> `data-density`         compact | comfortable | spacious
@@ -20,6 +20,7 @@
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedMode = "light" | "dark";
 export type ColorPreset =
+  | "fluent"
   | "navy"
   | "blue"
   | "indigo"
@@ -44,9 +45,9 @@ export const STORAGE_KEYS = {
 
 export const DEFAULTS = {
   mode: "system" as ThemeMode,
-  colorPreset: "navy" as ColorPreset,
+  colorPreset: "fluent" as ColorPreset,
   radius: "md" as Radius,
-  sidebarTone: "dark" as SidebarTone,
+  sidebarTone: "light" as SidebarTone,
   density: "comfortable" as Density,
 };
 
@@ -63,6 +64,8 @@ export const COLOR_PRESETS: Array<{
   light: string;
   dark: string;
 }> = [
+  // Fluent's own brand: exact hex, because this preset is not derived from a hue (see theme.css §10).
+  { key: "fluent", label: "Fluent", light: "#0f6cbd", dark: "#479ef5" },
   { key: "navy", label: "Xanh navy", light: "oklch(0.306 0.091 257)", dark: "oklch(0.72 0.13 257)" },
   { key: "blue", label: "Xanh dương", light: "oklch(0.49 0.175 250)", dark: "oklch(0.7 0.18 250)" },
   { key: "indigo", label: "Chàm", light: "oklch(0.46 0.175 277)", dark: "oklch(0.68 0.18 277)" },

@@ -223,7 +223,7 @@ export const SignUpForm = () => {
             <Link
               to="/login"
               className={cn(
-                "text-primary",
+                "text-brand",
                 "font-semibold",
                 "underline"
               )}

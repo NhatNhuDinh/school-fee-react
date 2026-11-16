@@ -117,7 +117,7 @@ public class FeeNotificationEmailRenderer {
                 // amount + deadline
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"margin-top:28px\"><tr>"
                 + "<td width=\"50%\" valign=\"top\"><div style=\"font-size:12px;line-height:18px;color:" + GREY + "\">Số tiền cần nộp</div>"
-                + "<div style=\"margin-top:4px;font-size:20px;font-weight:600;line-height:28px;color:" + INK + "\">" + money + " đ</div></td>"
+                + "<div style=\"margin-top:4px;font-size:20px;font-weight:600;line-height:28px;color:" + INK + "\">" + money + " VND</div></td>"
                 + "<td width=\"50%\" valign=\"top\"><div style=\"font-size:12px;line-height:18px;color:" + GREY + "\">Hạn đóng</div>"
                 + "<div style=\"margin-top:4px;font-size:20px;font-weight:600;line-height:28px;color:" + INK + "\">" + c.deadline().format(DATE) + "</div></td>"
                 + "</tr></table>"
@@ -133,7 +133,7 @@ public class FeeNotificationEmailRenderer {
                 + "<div style=\"margin-top:24px;font-size:14px;font-weight:600;line-height:20px;color:" + INK + "\">Chi tiết khoản thu</div>"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"margin-top:12px;border-collapse:collapse\">"
                 + "<tr>" + cell("padding:0 0 8px;font-size:12px;color:" + GREY + ";border-bottom:1px solid " + STRONG_LINE, "Khoản thu")
-                + cell("padding:0 0 8px;font-size:12px;color:" + GREY + ";text-align:right;border-bottom:1px solid " + STRONG_LINE, "Số tiền (đ)") + "</tr>"
+                + cell("padding:0 0 8px;font-size:12px;color:" + GREY + ";text-align:right;border-bottom:1px solid " + STRONG_LINE, "Số tiền (VND)") + "</tr>"
                 + rows
                 + "<tr>" + cell("padding:12px 0 0;font-size:14px;font-weight:600;color:" + INK + ";border-top:1px solid " + STRONG_LINE, "Tổng cộng")
                 + cell("padding:12px 0 0;font-size:14px;font-weight:600;color:" + INK + ";text-align:right;border-top:1px solid " + STRONG_LINE, money) + "</tr>"
@@ -150,7 +150,7 @@ public class FeeNotificationEmailRenderer {
                 + payRow("Ngân hàng", c.bankCode())
                 + payRow("Số tài khoản", c.bankAccountNumber())
                 + payRow("Chủ tài khoản", c.bankAccountHolder())
-                + payRow("Số tiền", money + " đ")
+                + payRow("Số tiền", money + " VND")
                 + payRow("Nội dung", c.orderCode())
                 + "</table></td></tr></table>"
                 + "</td></tr></table>"

@@ -60,7 +60,7 @@ export function StudentSearch({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <div ref={anchorRef} className="border-input bg-background focus-within:ring-ring/40 flex h-9 w-full max-w-xl items-center gap-2 rounded-md border px-3 text-sm focus-within:ring-2">
+        <div ref={anchorRef} className="bg-card border-input border-b-stroke-accessible hover:border-stroke-hover hover:border-b-stroke-accessible-hover focus-within:border-b-stroke-brand flex h-control w-full max-w-xl items-center gap-2 rounded-md border px-2.5 text-sm transition-[border-color,box-shadow] focus-within:shadow-[inset_0_-1px_0_0_var(--stroke-brand)]">
           <Search className="text-muted-foreground size-4 shrink-0" />
           {label && !open && text === "" ? (
             <button
@@ -76,10 +76,11 @@ export function StudentSearch({
           ) : null}
           <Input
             ref={inputRef}
+            appearance="bare"
             value={text}
             placeholder={label ? "" : "Nhập tên hoặc mã học sinh (quét mã vạch)…"}
             className={cn(
-              "h-auto min-w-0 flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0",
+              "h-auto min-w-0 flex-1 p-0",
               label && !open && text === "" && "hidden"
             )}
             onFocus={() => setOpen(true)}
@@ -148,7 +149,7 @@ export function StudentSearch({
                   <TableCell>{formatDate(hit.dateOfBirth)}</TableCell>
                   <TableCell>{hit.className}</TableCell>
                   <TableCell>{hit.studentCode}</TableCell>
-                  <TableCell className="text-primary text-right font-semibold tabular-nums">
+                  <TableCell className="text-brand text-right font-semibold tabular-nums">
                     {formatNumber(hit.outstanding)}
                   </TableCell>
                 </TableRow>

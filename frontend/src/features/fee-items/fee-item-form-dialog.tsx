@@ -523,7 +523,7 @@ function Section({ number, title, children }: { number: string; title: string; c
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2.5">
-        <span className="bg-primary/10 text-primary flex size-7 items-center justify-center rounded-md text-xs font-bold">
+        <span className="bg-primary/10 text-brand flex size-7 items-center justify-center rounded-md text-xs font-bold">
           {number}
         </span>
         <h3 className="text-[15px] font-semibold">{title}</h3>

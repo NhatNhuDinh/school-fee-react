@@ -5,6 +5,11 @@ import * as SwitchPrimitive from "@radix-ui/react-switch";
 
 import { cn } from "@/shared/lib/utils";
 
+/**
+ * Switch, in Fluent 2's style: a 40×20px track with a hairline edge in `stroke-accessible` and a
+ * 14px thumb. On, the track fills `compound` and the thumb goes white. Literal pixels, as Fluent
+ * draws it — it does not scale with density.
+ */
 function Switch({
   className,
   ...props
@@ -13,7 +18,11 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-e1 transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "peer group focus-ring inline-flex h-[20px] w-[40px] shrink-0 items-center rounded-full border border-stroke-accessible bg-transparent",
+        "transition-colors duration-(--dur-faster) ease-(--curve-easy-ease)",
+        "hover:border-stroke-accessible-hover",
+        "data-[state=checked]:border-compound data-[state=checked]:bg-compound hover:data-[state=checked]:border-compound-hover hover:data-[state=checked]:bg-compound-hover",
+        "disabled:cursor-not-allowed disabled:border-disabled-line disabled:data-[state=checked]:border-disabled disabled:data-[state=checked]:bg-disabled",
         className
       )}
       {...props}
@@ -21,7 +30,9 @@ function Switch({
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(
-          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+          "pointer-events-none ml-[3px] block size-[14px] rounded-full bg-stroke-accessible transition-[translate,background-color] duration-(--dur-fast) ease-(--curve-easy-ease)",
+          "group-hover:bg-stroke-accessible-hover data-[state=checked]:translate-x-[18px] data-[state=checked]:bg-on-compound group-hover:data-[state=checked]:bg-on-compound",
+          "group-disabled:bg-disabled-foreground group-disabled:data-[state=checked]:bg-disabled-foreground"
         )}
       />
     </SwitchPrimitive.Root>

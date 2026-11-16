@@ -114,7 +114,7 @@ function TriStateCheckbox({
         "data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
         "disabled:cursor-not-allowed disabled:opacity-50",
         state === "indeterminate" &&
-          "border-primary bg-primary/15 text-primary dark:bg-primary/25",
+          "border-primary bg-primary/15 text-brand dark:bg-primary/25",
         className
       )}
     >

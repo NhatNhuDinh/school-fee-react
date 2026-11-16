@@ -126,7 +126,7 @@ Three placements follow from those rules, and they are the ones easiest to undo 
 - **Payload types live in `domains/`; badge colours live in `shared/lib/status-variants.ts`.** Several features read another resource's shape — a task names a department and a user — and a feature may not import another feature, so the types needed a neutral home. That home may not know about React, so what a status *looks like* is kept apart from what it *is*: one table for every resource, which is also what lets an organization draw its departments' statuses.
 - **`users`, `roles`, `permissions` and `row-level-policies` are one feature, `administration`.** The role screens edit data scopes through the row-level policy screens' own `PolicyForm`; as separate features that import would break the rules. The sign-in forms went the other way, into `features/identity/components/`, because nothing outside that feature uses them.
 
-File names stay kebab-case (`list.tsx`, `use-notifications.ts`) rather than *sandulieundc*'s PascalCase: the layout was adopted, the renaming was not. `shared/ui/` is stock shadcn/ui (`new-york` style, `neutral` base, lucide icons, `@` → `src`), and `components.json` points the generator there — regenerate rather than hand-edit. Project-specific behaviour belongs in `shared/components/`.
+File names stay kebab-case (`list.tsx`, `use-notifications.ts`) rather than *sandulieundc*'s PascalCase: the layout was adopted, the renaming was not. `shared/ui/` began as stock shadcn/ui (`new-york` style, lucide icons, `@` → `src`) and has since been restyled to **Fluent 2** by editing its class lists — sizes (`h-control`, 24/32/40px), field edges (`field-control.ts`), disabled colours, focus ring, table. **Do not regenerate a component with the shadcn CLI**: it would overwrite the Fluent styling. Behaviour (Radix) and props are unchanged. Project-specific behaviour belongs in `shared/components/`. The values come from `@fluentui/tokens`; `npm run verify:fluent-tokens` fails if `styles/theme.css` §9–10 drift from it.
 
 ### Data layer
 
@@ -478,9 +478,9 @@ No component holds a colour of its own. Five orthogonal knobs live as state on `
 | Setting | Attribute | Values | Default |
 | --- | --- | --- | --- |
 | Mode | `class="dark"` | light / dark / system | system |
-| Brand colour | `data-color-preset` | navy, blue, indigo, violet, emerald, teal, rose, orange, amber, slate | navy |
+| Brand colour | `data-color-preset` | fluent, navy, blue, indigo, violet, emerald, teal, rose, orange, amber, slate | fluent |
 | Corner radius | `data-radius` | none / sm / md / lg / xl | md |
-| Sidebar tone | `data-sidebar-tone` | dark / light | dark |
+| Sidebar tone | `data-sidebar-tone` | dark / light | light |
 | Density | `data-density` | compact / comfortable / spacious | comfortable |
 
 The chain: `src/styles/theme.css` declares a handful of raw OKLCH numbers per preset and derives every semantic token from them → `src/styles/index.css` bridges those tokens into Tailwind v4 via `@theme inline` → components only ever use `bg-primary`, `text-success`, `shadow-e1..e4`, etc. Density works the same way: it rescales Tailwind's base `--spacing` unit, so every `p-*`/`gap-*`/`h-*` utility tightens or loosens the whole shell with no per-component overrides.
@@ -497,7 +497,7 @@ Beyond that: `--surface-subtle` (the step off the card, for the one strip in a p
 
 **The typeface is Inter Variable, and it ships inside the bundle.** `--font-sans` in `styles/index.css` is `"Inter Variable", ui-sans-serif, system-ui, …`, and the font itself comes from `@fontsource-variable/inter`, imported once in `App.tsx`. The import is the half that is easy to lose: a font name with no `@font-face` behind it only takes effect on machines where somebody happened to install the font, and falls back to Segoe UI everywhere else, with nothing in the build to say so. Self-hosting rather than linking Google Fonts means no request to a third-party host and nothing to fail on a closed network.
 
-**`text-overline` is the one small-caps style** — 11px, uppercase, semibold, tracked out — and it is a utility rather than four declarations copied into each place that needs a label: table headers, sidebar section headings, the caption over a field group. A new screen that needs a group label gets the right one by name instead of inventing an eleventh size.
+**`text-overline` is the one label style** — Fluent Caption 1 Strong: 12px, semibold, *not* uppercase (the name is kept from when it was small caps) — and it is a utility rather than four declarations copied into each place that needs a label: table headers, sidebar section headings, the caption over a field group. A new screen that needs a group label gets the right one by name instead of inventing an eleventh size.
 
 **It also has to be registered with `tailwind-merge`, in `src/shared/lib/utils.ts`.** `tailwind-merge` resolves conflicts from a table of class groups it ships with; a custom utility is not in it, so it guesses from the prefix — and `text-overline` looks exactly like `text-<size>`/`text-<colour>`. `cn("text-overline", "text-muted-foreground")` therefore *dropped the overline*, silently, leaving every table header looking like body text with nothing wrong in the source and nothing missing from the stylesheet. `cn` is built with `extendTailwindMerge` for that reason; any future custom utility whose name starts with a Tailwind namespace belongs in the same list.
 

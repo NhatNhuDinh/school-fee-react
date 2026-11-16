@@ -87,7 +87,7 @@ export function ThemeSelect() {
               {option.icon}
               <span>{option.label}</span>
               {isSelected && (
-                <Check className="h-4 w-4 absolute right-2 text-primary" />
+                <Check className="h-4 w-4 absolute right-2 text-brand" />
               )}
             </DropdownMenuItem>
           );

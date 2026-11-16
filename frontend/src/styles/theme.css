@@ -6,7 +6,9 @@
    Five independent knobs, all held as state on the <html> element:
 
      .dark                light / dark mode
-     data-color-preset    brand hue        navy (default) | blue | indigo | ...
+     data-color-preset    brand colour     fluent (default) | navy | blue | ...
+                          `fluent` is Fluent 2's own palette (§10); the others
+                          are derived from a hue (§1, §3-4)
      data-radius          corner rounding  none | sm | md | lg | xl
      data-sidebar-tone    sidebar surface  dark (default) | light
      data-density         layout rhythm    compact | comfortable | spacious
@@ -190,7 +192,7 @@
    -------------------------------------------------------------------------- */
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.375rem;
 
   /* The page is a tinted surface and a card is white, so a card reads as a
      sheet laid on a desk rather than a rectangle drawn on the same paper.
@@ -424,9 +426,11 @@
 /* --------------------------------------------------------------------------
    6. Corner rounding.
 
-   `md` is 0.5rem rather than the shadcn 0.625rem: a business screen is mostly
-   rectangles meeting rectangles — table, card, field, chip — and the softer
-   radius reads as consumer software the moment several of them stack up.
+   `md` is 0.375rem, so a control (`rounded-md`) is 4px — Fluent's medium
+   radius — and `rounded-sm` is 2px, its small one. A card or a dialog is
+   Fluent's 8px, which is `--radius + 2px`: use `rounded-card`. A business
+   screen is mostly rectangles meeting rectangles, and a softer radius reads as
+   consumer software the moment several of them stack up.
    -------------------------------------------------------------------------- */
 
 :root[data-radius="none"] {
@@ -436,7 +440,7 @@
   --radius: 0.25rem;
 }
 :root[data-radius="md"] {
-  --radius: 0.5rem;
+  --radius: 0.375rem;
 }
 :root[data-radius="lg"] {
   --radius: 0.75rem;
@@ -469,6 +473,26 @@
 
 :root[data-density="spacious"] {
   --density-spacing: 0.2875rem;
+}
+
+/* The height of a control follows the density, in Fluent's own three sizes:
+   small 24px, medium 32px, large 40px. They are literal pixels, not multiples
+   of `--density-spacing`, because a 27px button is nobody's size — the scale is
+   the point. `--control-h-*` are there for the control that is always one size
+   (a small icon button, a large search field); `--control-h` is the default. */
+:root {
+  --control-h-sm: 24px;
+  --control-h-md: 32px;
+  --control-h-lg: 40px;
+  --control-h: var(--control-h-md);
+}
+
+:root[data-density="compact"] {
+  --control-h: var(--control-h-sm);
+}
+
+:root[data-density="spacious"] {
+  --control-h: var(--control-h-lg);
 }
 
 /* The shell gutters — the air around the content column, on all four sides.
@@ -530,4 +554,345 @@
   --screen-child-duration: 260ms;
   --screen-child-lift: 10px;
   --screen-child-step: 45ms;
+}
+
+/* --------------------------------------------------------------------------
+   9. Fluent 2 controls — shadows, motion, focus and the states a control has.
+
+   Every value here is Fluent's, read from `@fluentui/tokens`
+   (webLightTheme / webDarkTheme). `npm run verify:fluent-tokens` compares this
+   section and the one after it with that package and fails on a difference, so
+   do not edit a number here without running it.
+
+   Nothing in this section depends on the brand preset, so it applies to every
+   preset. The few tokens that do (links, the checked state of a checkbox) are
+   defined in terms of `--primary` here and given Fluent's exact value by the
+   `fluent` preset in section 10.
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Elevation, shadow2 .. shadow64: an ambient layer and a key layer. */
+  --shadow-fl-2: 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.14);
+  --shadow-fl-4: 0 0 2px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.14);
+  --shadow-fl-8: 0 0 2px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.14);
+  --shadow-fl-16: 0 0 2px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.14);
+  --shadow-fl-28: 0 0 8px rgba(0, 0, 0, 0.12), 0 14px 28px rgba(0, 0, 0, 0.14);
+  --shadow-fl-64: 0 0 8px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(0, 0, 0, 0.14);
+
+  /* Stroke widths. */
+  --stroke-thin: 1px;
+  --stroke-thick: 2px;
+  --stroke-thicker: 3px;
+
+  /* Corner radii by Fluent's own names, for the places that need one exact
+     value instead of the user's radius setting. */
+  --radius-fl-small: 2px;
+  --radius-fl-medium: 4px;
+  --radius-fl-large: 6px;
+  --radius-fl-xlarge: 8px;
+
+  /* Duration and easing. */
+  --dur-ultra-fast: 50ms;
+  --dur-faster: 100ms;
+  --dur-fast: 150ms;
+  --dur-normal: 200ms;
+  --dur-gentle: 250ms;
+  --dur-slow: 300ms;
+  --dur-slower: 400ms;
+  --dur-ultra-slow: 500ms;
+  --curve-accelerate-max: cubic-bezier(0.9, 0.1, 1, 0.2);
+  --curve-accelerate-mid: cubic-bezier(1, 0, 1, 1);
+  --curve-accelerate-min: cubic-bezier(0.8, 0, 0.78, 1);
+  --curve-decelerate-max: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --curve-decelerate-mid: cubic-bezier(0, 0, 0, 1);
+  --curve-decelerate-min: cubic-bezier(0.33, 0, 0.1, 1);
+  --curve-easy-ease-max: cubic-bezier(0.8, 0, 0.2, 1);
+  --curve-easy-ease: cubic-bezier(0.33, 0, 0.67, 1);
+
+  /* Focus is two lines, not one: an inner stroke and an outer one in the
+     opposite colour, so the ring reads on a light surface and a dark one. */
+  --focus-inner: #000000;
+  --focus-outer: #ffffff;
+
+  /* A disabled control is not a faded one: it takes its own three colours. */
+  --disabled-bg: #f0f0f0;
+  --disabled-line: #e0e0e0;
+  --disabled-fg: #bdbdbd;
+
+  /* A control's edge darkens as the pointer arrives and presses. */
+  --stroke-hover: #c7c7c7;
+  --stroke-pressed: #b3b3b3;
+  --pressed-bg: #e0e0e0;
+  --selected-bg: #ebebeb;
+
+  /* The underline of a text field, which is darker than the edge around it. */
+  --stroke-accessible: #616161;
+  --stroke-accessible-hover: #575757;
+
+  --rating: #eaa300;
+
+  /* Brand-dependent: Fluent's own values come with the `fluent` preset. */
+  --primary-pressed: oklch(
+    calc(var(--preset-l) - 0.06) var(--preset-c) var(--preset-h)
+  );
+  --brand-foreground: var(--primary);
+  --brand-subtle: color-mix(in oklab, var(--primary) 10%, var(--card));
+  --brand-subtle-hover: color-mix(in oklab, var(--primary) 18%, var(--card));
+  --link: var(--primary);
+  --link-hover: var(--primary-hover);
+  --link-pressed: var(--primary-pressed);
+  --stroke-brand: var(--ring);
+  --compound-bg: var(--primary);
+  --compound-bg-hover: var(--primary-hover);
+  --compound-bg-pressed: var(--primary-pressed);
+  --on-compound: var(--primary-foreground);
+}
+
+.dark {
+  --shadow-fl-2: 0 0 2px rgba(0, 0, 0, 0.24), 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-fl-4: 0 0 2px rgba(0, 0, 0, 0.24), 0 2px 4px rgba(0, 0, 0, 0.28);
+  --shadow-fl-8: 0 0 2px rgba(0, 0, 0, 0.24), 0 4px 8px rgba(0, 0, 0, 0.28);
+  --shadow-fl-16: 0 0 2px rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.28);
+  --shadow-fl-28: 0 0 8px rgba(0, 0, 0, 0.24), 0 14px 28px rgba(0, 0, 0, 0.28);
+  --shadow-fl-64: 0 0 8px rgba(0, 0, 0, 0.24), 0 32px 64px rgba(0, 0, 0, 0.28);
+
+  --focus-inner: #ffffff;
+  --focus-outer: #000000;
+
+  --disabled-bg: #141414;
+  --disabled-line: #424242;
+  --disabled-fg: #5c5c5c;
+
+  --stroke-hover: #757575;
+  --stroke-pressed: #6b6b6b;
+  --pressed-bg: #1f1f1f;
+  --selected-bg: #383838;
+
+  --stroke-accessible: #adadad;
+  --stroke-accessible-hover: #bdbdbd;
+
+  --rating: #eaa300;
+
+  --primary-pressed: oklch(
+    calc(var(--preset-l-dark) - 0.06) var(--preset-c-dark) var(--preset-h)
+  );
+  --brand-subtle: color-mix(in oklab, var(--primary) 16%, var(--card));
+  --brand-subtle-hover: color-mix(in oklab, var(--primary) 26%, var(--card));
+}
+
+/* --------------------------------------------------------------------------
+   10. The `fluent` preset — Fluent 2's own colours, and the default.
+
+   The other presets derive their neutrals and statuses from a hue; this one
+   does not, because Fluent's greys are neutral and its statuses are fixed
+   colours. Every value below is a named token of `@fluentui/tokens`, and the
+   comment after each says which. It sits last so it wins over sections 3-5
+   at equal specificity.
+
+   Brand has two colours in Fluent where the other presets have one:
+   `--primary` is the *fill* (a button) and `--brand-foreground` is the brand
+   as *text or a line* (a link, an active tab's underline). In light mode they
+   are the same blue; in dark mode the fill is deeper and the text lighter, so
+   a label that is `text-primary` in dark mode would be too dim to read. New
+   code that wants the brand colour as text uses `text-brand`.
+
+   A card is white on a page one step darker. The table header is not a band:
+   Fluent's data grid has none, so `--table-header` is the card colour.
+   -------------------------------------------------------------------------- */
+
+:root[data-color-preset="fluent"] {
+  --preset-h: 250;
+  --preset-c: 0.15;
+  --preset-c-dark: 0.15;
+  --preset-l: 0.5;
+  --preset-l-dark: 0.5;
+  --preset-sidebar-c: 0.01;
+
+  --background: #f5f5f5; /* colorNeutralBackground3 */
+  --foreground: #242424; /* colorNeutralForeground1 */
+  --card: #ffffff; /* colorNeutralBackground1 */
+  --card-foreground: #242424; /* colorNeutralForeground1 */
+  --popover: #ffffff; /* colorNeutralBackground1 */
+  --popover-foreground: #242424; /* colorNeutralForeground1 */
+  --surface-subtle: #fafafa; /* colorNeutralBackground2 */
+  --table-header: #ffffff; /* colorNeutralBackground1 */
+  --table-header-foreground: #242424; /* colorNeutralForeground1 */
+
+  --primary: #0f6cbd; /* colorBrandBackground */
+  --primary-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --primary-hover: #115ea3; /* colorBrandBackgroundHover */
+  --primary-pressed: #0c3b5e; /* colorBrandBackgroundPressed */
+  --brand-foreground: #0f6cbd; /* colorBrandForeground1 */
+  --brand-subtle: #ebf3fc; /* colorBrandBackground2 */
+  --brand-subtle-hover: #cfe4fa; /* colorBrandBackground2Hover */
+
+  --secondary: #f5f5f5; /* colorNeutralBackground3 */
+  --secondary-foreground: #242424; /* colorNeutralForeground1 */
+  --muted: #f5f5f5; /* colorNeutralBackground3 */
+  --muted-foreground: #616161; /* colorNeutralForeground3 */
+  --accent: #f5f5f5; /* colorSubtleBackgroundHover */
+  --accent-foreground: #242424; /* colorNeutralForeground1 */
+
+  --destructive: #c50f1f; /* colorStatusDangerBackground3 */
+  --destructive-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --destructive-subtle: #fdf3f4; /* colorStatusDangerBackground1 */
+  --destructive-text: #b10e1c; /* colorStatusDangerForeground1 */
+
+  --success: #107c10; /* colorStatusSuccessBackground3 */
+  --success-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --success-subtle: #f1faf1; /* colorStatusSuccessBackground1 */
+  --success-text: #0e700e; /* colorStatusSuccessForeground1 */
+
+  /* Fluent's warning orange is too light for white text (3.1:1); the label
+     on the fill is the ink colour instead, which is 6:1. */
+  --warning: #f7630c; /* colorStatusWarningBackground3 */
+  --warning-foreground: #242424; /* colorNeutralForeground1 */
+  --warning-subtle: #fff9f5; /* colorStatusWarningBackground1 */
+  --warning-text: #bc4b09; /* colorStatusWarningForeground1 */
+
+  /* Fluent has no separate "info" colour: information is the brand blue. */
+  --info: #0f6cbd; /* colorBrandBackground */
+  --info-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --info-subtle: #ebf3fc; /* colorBrandBackground2 */
+  --info-text: #0f6cbd; /* colorBrandForeground1 */
+
+  --neutral: #616161; /* colorNeutralForeground3 */
+  --neutral-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --neutral-subtle: #f5f5f5; /* colorNeutralBackground3 */
+  --neutral-text: #424242; /* colorNeutralForeground2 */
+
+  --border: #e0e0e0; /* colorNeutralStroke2 */
+  --input: #d1d1d1; /* colorNeutralStroke1 */
+  --ring: #0f6cbd; /* colorCompoundBrandStroke */
+
+  --chart-1: #0f6cbd; /* colorBrandForeground1 */
+  --chart-2: #da3b01; /* colorPaletteDarkOrangeBorderActive */
+  --chart-3: #038387; /* colorPaletteTealBorderActive */
+  --chart-4: #5c2e91; /* colorPalettePurpleBorderActive */
+  --chart-5: #eaa300; /* colorPaletteMarigoldBorderActive */
+
+  /* Fluent navigation sits on its own surface (Background4), a step darker
+     than the page; hover is a step lighter, and the selected item is marked
+     by a brand-coloured bar beside it rather than by a fill. */
+  --sidebar: #f0f0f0; /* colorNeutralBackground4 */
+  --sidebar-foreground: #242424; /* colorNeutralForeground1 */
+  --sidebar-accent: #fafafa; /* colorNeutralBackground4Hover */
+  --sidebar-accent-foreground: #242424; /* colorNeutralForeground1 */
+  --sidebar-border: #e0e0e0; /* colorNeutralStroke2 */
+  --sidebar-primary: #0f6cbd; /* colorBrandBackground */
+  --sidebar-primary-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --sidebar-ring: #0f6cbd; /* colorCompoundBrandStroke */
+
+  /* The four elevation steps the shell already uses, on Fluent's shadows:
+     a card sits at 2, a hover or a menu at 8, a popover at 16, a dialog at 64. */
+  --elevation-1: var(--shadow-fl-2);
+  --elevation-2: var(--shadow-fl-8);
+  --elevation-3: var(--shadow-fl-16);
+  --elevation-4: var(--shadow-fl-64);
+
+  --link: #115ea3; /* colorBrandForegroundLink */
+  --link-hover: #0f548c; /* colorBrandForegroundLinkHover */
+  --link-pressed: #0c3b5e; /* colorBrandForegroundLinkPressed */
+  --stroke-brand: #0f6cbd; /* colorCompoundBrandStroke */
+  --compound-bg: #0f6cbd; /* colorCompoundBrandBackground */
+  --compound-bg-hover: #115ea3; /* colorCompoundBrandBackgroundHover */
+  --compound-bg-pressed: #0f548c; /* colorCompoundBrandBackgroundPressed */
+  --on-compound: #ffffff; /* colorNeutralForegroundInverted */
+}
+
+/* The dark rail, for someone who prefers it: Fluent's dark surface, so it
+   reads as part of the same family rather than a navy panel. */
+:root[data-color-preset="fluent"][data-sidebar-tone="dark"] {
+  --sidebar: #292929; /* colorNeutralBackground1 (dark) */
+  --sidebar-foreground: #ffffff; /* colorNeutralForeground1 (dark) */
+  --sidebar-accent: #383838; /* colorNeutralBackground1Selected (dark) */
+  --sidebar-accent-foreground: #ffffff; /* colorNeutralForeground1 (dark) */
+  --sidebar-border: #525252; /* colorNeutralStroke2 (dark) */
+  --sidebar-primary: #479ef5; /* colorBrandForeground1 (dark) */
+  --sidebar-primary-foreground: #242424; /* colorNeutralForegroundInverted (dark) */
+  --sidebar-ring: #479ef5; /* colorCompoundBrandStroke (dark) */
+}
+
+:root.dark[data-color-preset="fluent"] {
+  --background: #141414; /* colorNeutralBackground3 */
+  --foreground: #ffffff; /* colorNeutralForeground1 */
+  --card: #292929; /* colorNeutralBackground1 */
+  --card-foreground: #ffffff; /* colorNeutralForeground1 */
+  --popover: #292929; /* colorNeutralBackground1 */
+  --popover-foreground: #ffffff; /* colorNeutralForeground1 */
+  --surface-subtle: #1f1f1f; /* colorNeutralBackground2 */
+  --table-header: #292929; /* colorNeutralBackground1 */
+  --table-header-foreground: #ffffff; /* colorNeutralForeground1 */
+
+  --primary: #115ea3; /* colorBrandBackground */
+  --primary-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --primary-hover: #0f6cbd; /* colorBrandBackgroundHover */
+  --primary-pressed: #0c3b5e; /* colorBrandBackgroundPressed */
+  --brand-foreground: #479ef5; /* colorBrandForeground1 */
+  --brand-subtle: #082338; /* colorBrandBackground2 */
+  --brand-subtle-hover: #0c3b5e; /* colorBrandBackground2Hover */
+
+  --secondary: #333333; /* colorNeutralBackground6 */
+  --secondary-foreground: #ffffff; /* colorNeutralForeground1 */
+  --muted: #333333; /* colorNeutralBackground6 */
+  --muted-foreground: #adadad; /* colorNeutralForeground3 */
+  --accent: #383838; /* colorSubtleBackgroundHover */
+  --accent-foreground: #ffffff; /* colorNeutralForeground1 */
+
+  --destructive: #c50f1f; /* colorStatusDangerBackground3 */
+  --destructive-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --destructive-subtle: #3b0509; /* colorStatusDangerBackground1 */
+  --destructive-text: #dc626d; /* colorStatusDangerForeground1 */
+
+  --success: #107c10; /* colorStatusSuccessBackground3 */
+  --success-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --success-subtle: #052505; /* colorStatusSuccessBackground1 */
+  --success-text: #54b054; /* colorStatusSuccessForeground1 */
+
+  --warning: #f7630c; /* colorStatusWarningBackground3 */
+  --warning-foreground: #242424; /* colorNeutralForegroundInverted */
+  --warning-subtle: #4a1e04; /* colorStatusWarningBackground1 */
+  --warning-text: #faa06b; /* colorStatusWarningForeground1 */
+
+  --info: #115ea3; /* colorBrandBackground */
+  --info-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --info-subtle: #082338; /* colorBrandBackground2 */
+  --info-text: #479ef5; /* colorBrandForeground1 */
+
+  --neutral: #adadad; /* colorNeutralForeground3 */
+  --neutral-foreground: #242424; /* colorNeutralForegroundInverted */
+  --neutral-subtle: #333333; /* colorNeutralBackground6 */
+  --neutral-text: #d6d6d6; /* colorNeutralForeground2 */
+
+  --border: #525252; /* colorNeutralStroke2 */
+  --input: #666666; /* colorNeutralStroke1 */
+  --ring: #479ef5; /* colorCompoundBrandStroke */
+
+  --chart-1: #479ef5; /* colorBrandForeground1 */
+  --chart-2: #e9835e; /* colorPaletteDarkOrangeBorderActive */
+  --chart-3: #4cb4b7; /* colorPaletteTealBorderActive */
+  --chart-4: #9470bd; /* colorPalettePurpleBorderActive */
+  --chart-5: #f2c661; /* colorPaletteMarigoldBorderActive */
+
+  --link: #479ef5; /* colorBrandForegroundLink */
+  --link-hover: #62abf5; /* colorBrandForegroundLinkHover */
+  --link-pressed: #2886de; /* colorBrandForegroundLinkPressed */
+  --stroke-brand: #479ef5; /* colorCompoundBrandStroke */
+  --compound-bg: #479ef5; /* colorCompoundBrandBackground */
+  --compound-bg-hover: #62abf5; /* colorCompoundBrandBackgroundHover */
+  --compound-bg-pressed: #2886de; /* colorCompoundBrandBackgroundPressed */
+  --on-compound: #242424; /* colorNeutralForegroundInverted */
+}
+
+/* In dark mode the rail is the same on both tones: Fluent's dark has one
+   surface step to spare, and a "light" rail has no meaning against it. */
+:root.dark[data-color-preset="fluent"][data-sidebar-tone] {
+  --sidebar: #0a0a0a; /* colorNeutralBackground4 */
+  --sidebar-foreground: #ffffff; /* colorNeutralForeground1 */
+  --sidebar-accent: #1f1f1f; /* colorNeutralBackground4Hover */
+  --sidebar-accent-foreground: #ffffff; /* colorNeutralForeground1 */
+  --sidebar-border: #525252; /* colorNeutralStroke2 */
+  --sidebar-primary: #115ea3; /* colorBrandBackground */
+  --sidebar-primary-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
+  --sidebar-ring: #479ef5; /* colorCompoundBrandStroke */
 }

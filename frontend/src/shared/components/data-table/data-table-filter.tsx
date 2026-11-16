@@ -57,7 +57,7 @@ export function DataTableFilterDropdown<TData>({
             "data-[state=open]:bg-accent",
             "w-5 h-5",
             {
-              "text-primary": isFiltered,
+              "text-brand": isFiltered,
               "text-muted-foreground": !isFiltered,
             },
             triggerClassName

@@ -74,7 +74,7 @@ export function ThemeCustomizer({ className }: { className?: string }) {
               size="icon"
               aria-label="Tùy biến giao diện"
               className={cn(
-                "size-9 rounded-lg text-muted-foreground",
+                "text-muted-foreground",
                 "hover:bg-accent hover:text-foreground",
                 className
               )}
@@ -126,7 +126,7 @@ export function ThemeCustomizer({ className }: { className?: string }) {
                       style={{ backgroundColor: swatch }}
                     />
                     <span className="flex-1 text-left">{preset.label}</span>
-                    {isActive && <Check className="size-3.5 shrink-0 text-primary" />}
+                    {isActive && <Check className="size-3.5 shrink-0 text-brand" />}
                   </button>
                 );
               })}
@@ -256,7 +256,7 @@ function OptionButton({
         "text-xs font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isActive
-          ? "border-primary bg-primary/10 text-primary"
+          ? "border-primary bg-primary/10 text-brand"
           : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
         className
       )}

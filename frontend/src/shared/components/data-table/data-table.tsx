@@ -283,18 +283,12 @@ export function DataTable<TData extends BaseRecord>({
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
                           className={cn(
-                            "group/sort -mx-1 flex max-w-full items-center gap-1",
-                            "rounded px-1 py-0.5 text-inherit",
-                            // Preflight resets `text-transform` on `button`,
-                            // so the header's own `text-overline` stops at the
-                            // element boundary and a sortable column comes out
-                            // in sentence case beside its unsortable
-                            // neighbours. Restate it on the button.
-                            "text-overline",
-                            "transition-colors hover:text-foreground",
-                            "focus-visible:outline-none focus-visible:ring-2",
-                            "focus-visible:ring-ring/50",
-                            sorted && "text-foreground"
+                            "group/sort focus-ring -mx-1 flex max-w-full items-center gap-1",
+                            // A button does not inherit its parent's type
+                            // (preflight resets it), so restate the header's.
+                            "rounded-sm px-1 py-0.5 text-sm font-normal text-inherit",
+                            // Fluent: a sortable header fills on hover.
+                            "hover:bg-accent active:bg-pressed transition-colors"
                           )}
                         >
                           <span className="truncate">
@@ -386,7 +380,7 @@ export function DataTable<TData extends BaseRecord>({
                         "top-1/2",
                         "left-1/2",
                         "animate-spin",
-                        "text-primary",
+                        "text-brand",
                         "h-8",
                         "w-8",
                         "-translate-x-1/2",
@@ -484,10 +478,10 @@ export function DataTable<TData extends BaseRecord>({
  */
 function SortIndicator({ sorted }: { sorted: false | "asc" | "desc" }) {
   if (sorted === "asc") {
-    return <ArrowUp className="text-primary size-3 shrink-0" />;
+    return <ArrowUp className="text-brand size-3 shrink-0" />;
   }
   if (sorted === "desc") {
-    return <ArrowDown className="text-primary size-3 shrink-0" />;
+    return <ArrowDown className="text-brand size-3 shrink-0" />;
   }
   return (
     <ChevronsUpDown
@@ -658,14 +652,12 @@ export function getPinnedClasses<TData>({
     // A pinned *header* cell has to stay on the header band, or the frozen
     // column shows a white stripe through an otherwise tinted strip.
     "[&[data-slot=table-head]]:bg-table-header",
-    // Opaque on purpose. The row's own hover and selected tints are translucent
-    // washes (`accent/40`, `accent/60`), which is fine on a cell that has
-    // nothing scrolling under it — but a frozen cell sits *on top of* the
-    // columns that scroll beneath it, and a translucent background lets their
-    // text show through it. So the same tint is mixed onto the card colour up
-    // front: it looks identical against the card, and hides what is behind.
-    "group-hover/row:bg-[color-mix(in_oklab,var(--accent)_40%,var(--card))]",
-    "group-data-[state=selected]/row:bg-[color-mix(in_oklab,var(--accent)_60%,var(--card))]"
+    // Opaque on purpose: a frozen cell sits *on top of* the columns that scroll
+    // beneath it, and a translucent background lets their text show through.
+    // `accent` and `brand-subtle` are solid colours, so the row's hover and
+    // selected fills are restated here rather than mixed with alpha.
+    "group-hover/row:bg-accent",
+    "group-data-[state=selected]/row:bg-brand-subtle"
   );
 }
 
