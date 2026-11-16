@@ -153,6 +153,8 @@ export type BankRow = {
   suggestedClassName: string | null;
   handledBy: string | null;
   handledAt: string | null;
+  /** A person set this line aside or assigned it, so a person can take that back. */
+  undoable: boolean;
 };
 
 /** Why a bank line is waiting for a person, in the words the review screen uses. */
@@ -170,4 +172,5 @@ export const REASON_LABEL: Record<string, string> = {
   WRONG_ACCOUNT: "Không phải tài khoản thu",
   MANUAL_IGNORED: "Đã bỏ qua",
   MANUAL_ASSIGNED: "Đã gán thủ công",
+  UNDONE: "Đã hoàn tác, cần xử lý lại",
 };

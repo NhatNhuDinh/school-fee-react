@@ -19,11 +19,21 @@ export function StudentSearch({
   label,
   onPick,
   onClear,
+  openOnFocus = true,
+  fitWidth = false,
 }: {
   yearId: number;
   label: string | null;
   onPick: (hit: StudentHit) => void;
   onClear: () => void;
+  /**
+   * The counter opens the list the moment the box is focused, so the cashier sees who owes. A dialog focuses its
+   * first field by itself, and a list that opens over the dialog before anyone has asked for it covers the rest of
+   * it: there it opens on a click or on typing instead.
+   */
+  openOnFocus?: boolean;
+  /** Make the list as wide as the box rather than the width of a counter screen, for a box inside a dialog. */
+  fitWidth?: boolean;
 }) {
   const [text, setText] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -32,6 +42,11 @@ export function StudentSearch({
   const settled = useDebounced(text, 250);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const anchorRef = React.useRef<HTMLDivElement>(null);
+  // In a dialog the list is drawn inside it (see `PopoverContent`), so the wheel scrolls it.
+  const [host, setHost] = React.useState<HTMLElement | null>(null);
+  React.useEffect(() => {
+    setHost(fitWidth ? (anchorRef.current?.closest("[role=dialog]") as HTMLElement | null) : null);
+  }, [fitWidth]);
 
   React.useEffect(() => {
     if (!open) {
@@ -60,7 +75,7 @@ export function StudentSearch({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <div ref={anchorRef} className="bg-card border-input border-b-stroke-accessible hover:border-stroke-hover hover:border-b-stroke-accessible-hover focus-within:border-b-stroke-brand flex h-control w-full max-w-xl items-center gap-2 rounded-md border px-2.5 text-sm transition-[border-color,box-shadow] focus-within:shadow-[inset_0_-1px_0_0_var(--stroke-brand)]">
+        <div ref={anchorRef} className={cn("bg-card border-input border-b-stroke-accessible hover:border-stroke-hover hover:border-b-stroke-accessible-hover focus-within:border-b-stroke-brand flex h-control w-full items-center gap-2 rounded-md border px-2.5 text-sm transition-[border-color,box-shadow] focus-within:shadow-[inset_0_-1px_0_0_var(--stroke-brand)]", !fitWidth && "max-w-xl")}>
           <Search className="text-muted-foreground size-4 shrink-0" />
           {label && !open && text === "" ? (
             <button
@@ -83,7 +98,8 @@ export function StudentSearch({
               "h-auto min-w-0 flex-1 p-0",
               label && !open && text === "" && "hidden"
             )}
-            onFocus={() => setOpen(true)}
+            onFocus={() => openOnFocus && setOpen(true)}
+            onClick={() => setOpen(true)}
             onChange={(event) => {
               setText(event.target.value);
               setOpen(true);
@@ -114,7 +130,11 @@ export function StudentSearch({
       </PopoverAnchor>
       <PopoverContent
         align="start"
-        className="w-[min(60rem,calc(100vw-2rem))] overflow-hidden p-0"
+        container={host}
+        className={cn(
+          "overflow-hidden p-0",
+          fitWidth ? "w-(--radix-popover-trigger-width)" : "w-[min(60rem,calc(100vw-2rem))]"
+        )}
         onOpenAutoFocus={(event) => event.preventDefault()}
         onInteractOutside={(event) => {
           if (anchorRef.current?.contains(event.target as Node)) event.preventDefault();

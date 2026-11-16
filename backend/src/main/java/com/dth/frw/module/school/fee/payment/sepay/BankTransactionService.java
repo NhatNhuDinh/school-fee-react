@@ -74,7 +74,7 @@ public class BankTransactionService {
     public record Row(long id, OffsetDateTime time, BigDecimal amount, String content, String code,
                       String referenceCode, Long sepayId, String source, String status, String reason, String note,
                       Long suggestedEnrollmentId, String suggestedStudentCode, String suggestedStudentName,
-                      String suggestedClassName, String handledBy, OffsetDateTime handledAt) {
+                      String suggestedClassName, String handledBy, OffsetDateTime handledAt, boolean undoable) {
     }
 
     private final JdbcTemplate jdbc;
@@ -364,11 +364,25 @@ public class BankTransactionService {
 
     // ---- the review screen
 
-    public List<Row> list(Long yearId, String tab, LocalDate from, LocalDate to, String q) {
-        Long org = academicYearService.get(yearId).getOrganization().getId();
+    private static final String ALL_STATUSES = "('NEEDS_REVIEW', 'MATCHED', 'RESOLVED', 'IGNORED')";
+    private static final String DONE_STATUSES = "('MATCHED', 'RESOLVED', 'IGNORED')";
+    private static final Set<String> LISTED = Set.of("NEEDS_REVIEW", "MATCHED", "RESOLVED", "IGNORED");
+
+    /** What a line is joined to, so the search can read the student it was suggested for. */
+    private static final String LINE_JOINS = """
+             from bank_transactions t
+             left join student_enrollments en on en.id = t.suggested_enrollment_id
+             left join students st on st.id = en.student_id
+             left join school_classes sc on sc.id = en.school_class_id
+            """;
+
+    private record Filter(StringBuilder where, MapSqlParameterSource args) {
+    }
+
+    /** The conditions the date range and the search box put on a list, shared by the rows and the tab counts. */
+    private Filter filter(Long org, LocalDate from, LocalDate to, String q) {
         MapSqlParameterSource args = new MapSqlParameterSource("org", org);
-        StringBuilder where = new StringBuilder(" where t.organization_id = :org and t.status "
-                + ("review".equals(tab) ? "= 'NEEDS_REVIEW'" : "in ('MATCHED', 'RESOLVED', 'IGNORED')"));
+        StringBuilder where = new StringBuilder(" where t.organization_id = :org");
         if (from != null) {
             where.append(" and t.transaction_time >= :from");
             args.addValue("from", Timestamp.from(from.atStartOfDay(VN).toInstant()));
@@ -378,22 +392,52 @@ public class BankTransactionService {
             args.addValue("to", Timestamp.from(to.plusDays(1).atStartOfDay(VN).toInstant()));
         }
         if (q != null && !q.isBlank()) {
-            where.append(" and (lower(t.content) like :q or lower(t.reference_code) like :q)");
+            where.append(" and (lower(t.content) like :q or lower(t.reference_code) like :q or t.sepay_id::text like :q"
+                    + " or lower(st.full_name) like :q or lower(st.student_code) like :q)");
             args.addValue("q", "%" + q.trim().toLowerCase(Locale.ROOT) + "%");
+        }
+        return new Filter(where, args);
+    }
+
+    public List<Row> list(Long yearId, String tab, LocalDate from, LocalDate to, String q) {
+        return list(yearId, tab, from, to, q, null);
+    }
+
+    /**
+     * The lines of the review screen. {@code tab}: {@code all} (every line), {@code processed} (matched, assigned or
+     * set aside) or {@code review} (waiting for a person). {@code status} narrows either one to a single status.
+     */
+    public List<Row> list(Long yearId, String tab, LocalDate from, LocalDate to, String q, String status) {
+        Long org = academicYearService.get(yearId).getOrganization().getId();
+        Filter f = filter(org, from, to, q);
+        f.where().append(" and t.status in ").append("review".equals(tab) ? "('NEEDS_REVIEW')"
+                : "all".equals(tab) ? ALL_STATUSES : DONE_STATUSES);
+        if (status != null && LISTED.contains(status)) {
+            f.where().append(" and t.status = :status");
+            f.args().addValue("status", status);
         }
         return named.query("""
                 select t.id, t.transaction_time, t.amount, t.content, t.code, t.reference_code, t.sepay_id, t.source,
                        t.status, t.reason, t.note, t.suggested_enrollment_id, st.student_code, st.full_name, sc.name,
-                       t.handled_by_name, t.handled_at
-                from bank_transactions t
-                left join student_enrollments en on en.id = t.suggested_enrollment_id
-                left join students st on st.id = en.student_id
-                left join school_classes sc on sc.id = en.school_class_id
-                """ + where + " order by t.transaction_time desc, t.id desc limit 300", args,
+                       t.handled_by_name, t.handled_at,
+                       (t.status = 'RESOLVED' and t.reason = 'MANUAL_ASSIGNED')
+                           or (t.status = 'IGNORED' and t.reason = 'MANUAL_IGNORED')
+                """ + LINE_JOINS + f.where() + " order by t.transaction_time desc, t.id desc limit 300", f.args(),
                 (rs, n) -> new Row(rs.getLong(1), rs.getObject(2, OffsetDateTime.class), rs.getBigDecimal(3),
                         rs.getString(4), rs.getString(5), rs.getString(6), (Long) rs.getObject(7), rs.getString(8),
                         rs.getString(9), rs.getString(10), rs.getString(11), (Long) rs.getObject(12), rs.getString(13),
-                        rs.getString(14), rs.getString(15), rs.getString(16), rs.getObject(17, OffsetDateTime.class)));
+                        rs.getString(14), rs.getString(15), rs.getString(16), rs.getObject(17, OffsetDateTime.class),
+                        rs.getBoolean(18)));
+    }
+
+    /** How many lines each tab holds under the same date range and search, so the tab labels match the list. */
+    public Map<String, Long> counts(Long yearId, LocalDate from, LocalDate to, String q) {
+        Long org = academicYearService.get(yearId).getOrganization().getId();
+        Filter f = filter(org, from, to, q);
+        return named.queryForObject("select count(*) filter (where t.status in " + ALL_STATUSES + "), "
+                + "count(*) filter (where t.status in " + DONE_STATUSES + "), "
+                + "count(*) filter (where t.status = 'NEEDS_REVIEW') " + LINE_JOINS + f.where(), f.args(),
+                (rs, n) -> Map.of("all", rs.getLong(1), "processed", rs.getLong(2), "review", rs.getLong(3)));
     }
 
     public long reviewCount(Long yearId) {
@@ -448,6 +492,36 @@ public class BankTransactionService {
         jdbc.update("update bank_transactions set status = 'RESOLVED', reason = 'MANUAL_ASSIGNED', note = null, handled_by_name = ?, "
                 + "handled_at = now(), suggested_enrollment_id = ? where id = ?", currentName(), enrollmentId, id);
         events.publishEvent(new com.dth.frw.module.school.fee.payment.service.TransferPaymentPublisher.ReviewChanged(((Number) row.get("organization_id")).longValue()));
+    }
+
+    /**
+     * "Hoàn tác": takes back what a person did to a line, for when it was done by mistake. Setting a line aside has
+     * nothing to give back; assigning it made a receipt, which is cancelled so the student owes what they owed
+     * before. Either way the line returns to review. A line the system matched itself is not undone from here:
+     * nobody pressed anything, and its receipt is cancelled where receipts are.
+     */
+    @Transactional
+    public void undo(Long yearId, Long id) {
+        Long org = academicYearService.get(yearId).getOrganization().getId();
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "select * from bank_transactions where id = ? and organization_id = ? for update", id, org);
+        if (rows.isEmpty()) {
+            throw new ResourceNotFoundException("giao dịch", id);
+        }
+        String status = (String) rows.get(0).get("status");
+        String reason = (String) rows.get(0).get("reason");
+        if ("RESOLVED".equals(status) && "MANUAL_ASSIGNED".equals(reason)) {
+            List<Long> receipts = jdbc.queryForList(
+                    "select id from fee_payments where bank_transaction_id = ? and status = 'ACTIVE'", Long.class, id);
+            if (!receipts.isEmpty()) {
+                payments.cancel(yearId, receipts);
+            }
+        } else if (!("IGNORED".equals(status) && "MANUAL_IGNORED".equals(reason))) {
+            throw new ConflictException("Chỉ hoàn tác được giao dịch đã gán thủ công hoặc đã bỏ qua");
+        }
+        jdbc.update("update bank_transactions set status = 'NEEDS_REVIEW', reason = 'UNDONE', "
+                + "handled_by_name = null, handled_at = null where id = ?", id);
+        events.publishEvent(new com.dth.frw.module.school.fee.payment.service.TransferPaymentPublisher.ReviewChanged(org));
     }
 
     private Map<String, Object> lockForReview(Long yearId, Long id) {

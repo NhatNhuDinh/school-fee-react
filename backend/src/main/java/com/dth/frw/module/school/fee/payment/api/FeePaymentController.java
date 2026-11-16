@@ -193,8 +193,9 @@ public class FeePaymentController {
                                       @RequestParam(defaultValue = "review") String tab,
                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-                                      @RequestParam(required = false) String q) {
-        return bank.list(academicYearId, tab, from, to, q);
+                                      @RequestParam(required = false) String q,
+                                      @RequestParam(required = false) String status) {
+        return bank.list(academicYearId, tab, from, to, q, status);
     }
 
     /** The home page: totals, the last {@code days} of receipts, and how the đợt, khoản thu and classes stand. */
@@ -205,11 +206,19 @@ public class FeePaymentController {
         return dashboard.get(academicYearId, days);
     }
 
-    /** What the toolbar badge and the tabs count. */
+    /**
+     * What the toolbar badge and the tabs count. {@code review} is every line still waiting for a person, whatever the
+     * filters; {@code all} and {@code processed} are the two tabs under the date range and search the screen has.
+     */
     @GetMapping("/bank-transactions/summary")
     @PreAuthorize("hasAuthority('" + Permissions.FEE_PAYMENTS_READ + "')")
-    public Map<String, Object> summary(@RequestParam Long academicYearId) {
-        return Map.of("review", bank.reviewCount(academicYearId), "waiting", transferRequests.waitingCount(academicYearId));
+    public Map<String, Object> summary(@RequestParam Long academicYearId,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                       @RequestParam(required = false) String q) {
+        Map<String, Long> tabs = bank.counts(academicYearId, from, to, q);
+        return Map.of("review", bank.reviewCount(academicYearId), "waiting", transferRequests.waitingCount(academicYearId),
+                "all", tabs.get("all"), "processed", tabs.get("processed"));
     }
 
     @PostMapping("/bank-transactions/check")
@@ -222,6 +231,14 @@ public class FeePaymentController {
     @PreAuthorize("hasAuthority('" + Permissions.FEE_PAYMENTS_WRITE + "')")
     public Map<String, Object> ignore(@PathVariable Long id, @Valid @RequestBody Ignore request) {
         bank.ignore(request.academicYearId(), id, request.note());
+        return Map.of("ok", true);
+    }
+
+    /** "Hoàn tác": a line set aside or assigned by a person goes back to review (an assigned one gives its receipt back). */
+    @PostMapping("/bank-transactions/{id}/undo")
+    @PreAuthorize("hasAuthority('" + Permissions.FEE_PAYMENTS_WRITE + "')")
+    public Map<String, Object> undo(@PathVariable Long id, @Valid @RequestBody YearOnly request) {
+        bank.undo(request.academicYearId(), id);
         return Map.of("ok", true);
     }
 

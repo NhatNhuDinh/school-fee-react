@@ -1,5 +1,7 @@
 package com.dth.frw.school;
 
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -263,6 +265,116 @@ class SepayWebhookTest {
     }
 
     @Test
+    void aLineSetAsideByMistakeCanBeBroughtBack() throws Exception {
+        long sepayId = IDS.incrementAndGet();
+        webhook(sepayId, 500000, "khong co ma", "in", ACCOUNT).andExpect(status().isOk());
+        long txId = lineId(sepayId, "review");
+        mvc.perform(post("/api/fee_payments/bank-transactions/" + txId + "/ignore").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"academicYearId\": %d, \"note\": \"nhầm\"}".formatted(year)))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "processed").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.id == %d)].undoable".formatted(txId), hasItem(true)));
+
+        undo(txId).andExpect(status().isOk());
+
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "review").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.id == %d)].reason".formatted(txId), hasItem("UNDONE")))
+                .andExpect(jsonPath("$[?(@.id == %d)].handledBy".formatted(txId), hasItem(nullValue())));
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "processed").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.id == %d)]".formatted(txId), empty()));
+    }
+
+    @Test
+    void aLineAssignedByMistakeGivesItsReceiptBack() throws Exception {
+        long before = owed();
+        long sepayId = IDS.incrementAndGet();
+        webhook(sepayId, before, "chuyen tien khong ma", "in", ACCOUNT).andExpect(status().isOk());
+        long txId = lineId(sepayId, "review");
+        mvc.perform(post("/api/fee_payments/bank-transactions/" + txId + "/assign").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"academicYearId\": %d, \"enrollmentId\": %d, \"receivableIds\": %s}"
+                                .formatted(year, enrollment, receivables)))
+                .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals(0, owed());
+
+        undo(txId).andExpect(status().isOk());
+
+        org.junit.jupiter.api.Assertions.assertEquals(before, owed(), "the receipt was cancelled, so the debt is back");
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "review").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.id == %d)].reason".formatted(txId), hasItem("UNDONE")));
+        // Done again, it can be assigned again: nothing was left half-undone.
+        mvc.perform(post("/api/fee_payments/bank-transactions/" + txId + "/assign").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"academicYearId\": %d, \"enrollmentId\": %d, \"receivableIds\": %s}"
+                                .formatted(year, enrollment, receivables)))
+                .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals(0, owed());
+    }
+
+    @Test
+    void aLineTheSystemMatchedItselfCannotBeUndoneFromTheReviewScreen() throws Exception {
+        String request = createRequest();
+        String code = JsonPath.read(request, "$.orderCode");
+        long amount = ((Number) JsonPath.read(request, "$.amount")).longValue();
+        long sepayId = IDS.incrementAndGet();
+        webhook(sepayId, amount, code, "in", ACCOUNT).andExpect(status().isOk());
+        long txId = lineId(sepayId, "processed");
+
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "processed").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.id == %d)].undoable".formatted(txId), hasItem(false)));
+        undo(txId).andExpect(status().isConflict());
+    }
+
+    @Test
+    void theListCanBeNarrowedByTabStatusDateAndSearch() throws Exception {
+        String request = createRequest();
+        String code = JsonPath.read(request, "$.orderCode");
+        long amount = ((Number) JsonPath.read(request, "$.amount")).longValue();
+        long matched = IDS.incrementAndGet();
+        long waiting = IDS.incrementAndGet();
+        webhook(matched, amount, code, "in", ACCOUNT).andExpect(status().isOk());
+        webhook(waiting, 123000, "tim-toi-dong-nay", "in", ACCOUNT).andExpect(status().isOk());
+
+        // Every line is in "all"; only the ones somebody or the system has dealt with are in "processed".
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "all").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(matched), hasSize(1)))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(waiting), hasSize(1)));
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "processed").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(matched), hasSize(1)))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(waiting), empty()));
+        // A status narrows the tab.
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "all").param("status", "NEEDS_REVIEW").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(waiting), hasSize(1)))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(matched), empty()));
+        // The search reads the memo.
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "all").param("q", "TIM-TOI-DONG").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(waiting), hasSize(1)))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(matched), empty()));
+        // A range that ends before today finds neither; one that covers today finds both.
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "all").param("to", "2000-01-01").header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(waiting), empty()));
+        String today = java.time.LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).toString();
+        mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", "all").param("from", today).param("to", today).header("Authorization", token))
+                .andExpect(jsonPath("$[?(@.sepayId == %d)]".formatted(waiting), hasSize(1)));
+        // The tab labels count under the same filters.
+        mvc.perform(get("/api/fee_payments/bank-transactions/summary").param("academicYearId", "" + year)
+                        .param("to", "2000-01-01").header("Authorization", token))
+                .andExpect(jsonPath("$.all", is(0)))
+                .andExpect(jsonPath("$.processed", is(0)));
+    }
+
+    @Test
     void askingAgainForTheSameKhoanThuReturnsTheSameCode() throws Exception {
         String first = createRequest();
         String second = createRequest();
@@ -353,6 +465,19 @@ class SepayWebhookTest {
     }
 
     // ---- helpers
+
+    /** The id of the bank line SePay knows as {@code sepayId}, read from one tab of the review screen. */
+    private long lineId(long sepayId, String tab) throws Exception {
+        String lines = mvc.perform(get("/api/fee_payments/bank-transactions").param("academicYearId", "" + year)
+                        .param("tab", tab).header("Authorization", token))
+                .andReturn().getResponse().getContentAsString();
+        return ((Number) ((List<?>) JsonPath.read(lines, "$[?(@.sepayId == %d)].id".formatted(sepayId))).get(0)).longValue();
+    }
+
+    private org.springframework.test.web.servlet.ResultActions undo(long txId) throws Exception {
+        return mvc.perform(post("/api/fee_payments/bank-transactions/" + txId + "/undo").header("Authorization", token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"academicYearId\": %d}".formatted(year)));
+    }
 
     /** What the student still owes, in total. */
     private long owed() throws Exception {

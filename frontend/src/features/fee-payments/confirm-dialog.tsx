@@ -17,6 +17,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel = "Không",
   busy,
   destructive,
   onConfirm,
@@ -26,6 +27,8 @@ export function ConfirmDialog({
   title: string;
   description: ReactNode;
   confirmLabel: string;
+  /** What the way out says; "Không" unless the question needs a clearer answer ("Giữ nguyên"). */
+  cancelLabel?: string;
   busy?: boolean;
   destructive?: boolean;
   onConfirm: () => void;
@@ -39,7 +42,7 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>Không</AlertDialogCancel>
+          <AlertDialogCancel disabled={busy}>{cancelLabel}</AlertDialogCancel>
           <Button type="button" variant={destructive ? "destructive" : "default"} disabled={busy} onClick={onConfirm}>
             {busy ? "Đang xử lý…" : confirmLabel}
           </Button>

@@ -131,28 +131,46 @@ export const checkTransfer = (yearId: number, id: number) =>
     academicYearId: yearId,
   });
 
+/** What narrows a list of bank lines: the date range, the search box and, optionally, one status. */
+export type BankFilter = { from?: string; to?: string; q?: string; status?: string };
+
+function filterParams(filter: BankFilter): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (filter.from) params.from = filter.from;
+  if (filter.to) params.to = filter.to;
+  if (filter.q?.trim()) params.q = filter.q.trim();
+  if (filter.status) params.status = filter.status;
+  return params;
+}
+
 export function fetchBankRows(
   yearId: number,
-  tab: "review" | "processed",
-  filter: { from?: string; to?: string; q?: string } = {}
+  tab: "all" | "review" | "processed",
+  filter: BankFilter = {}
 ): Promise<BankRow[]> {
-  const searchParams: Record<string, string | number> = { academicYearId: yearId, tab };
-  if (filter.from) searchParams.from = filter.from;
-  if (filter.to) searchParams.to = filter.to;
-  if (filter.q?.trim()) searchParams.q = filter.q.trim();
+  const searchParams = { academicYearId: yearId, tab, ...filterParams(filter) };
   return kyInstance.get(`${BASE}/bank-transactions`, { searchParams }).json<BankRow[]>();
 }
 
-export function fetchPaymentSummary(yearId: number): Promise<{ review: number; waiting: number }> {
+export type PaymentSummary = { review: number; waiting: number; all: number; processed: number };
+
+/**
+ * `review` is every line still waiting for a person, whatever the filters; `all` and `processed` are the two tabs
+ * of the review screen under the same date range and search as its list.
+ */
+export function fetchPaymentSummary(yearId: number, filter: BankFilter = {}): Promise<PaymentSummary> {
+  const counted = { ...filter, status: undefined };
   return kyInstance
-    .get(`${BASE}/bank-transactions/summary`, { searchParams: { academicYearId: yearId } })
-    .json<{ review: number; waiting: number }>();
+    .get(`${BASE}/bank-transactions/summary`, { searchParams: { academicYearId: yearId, ...filterParams(counted) } })
+    .json<PaymentSummary>();
 }
 
 export const checkBank = (yearId: number, days?: number) =>
   post<CheckSummary>(`${BASE}/bank-transactions/check`, { academicYearId: yearId, days });
 export const ignoreBankRow = (yearId: number, id: number, note: string) =>
   post<{ ok: true }>(`${BASE}/bank-transactions/${id}/ignore`, { academicYearId: yearId, note });
+export const undoBankRow = (yearId: number, id: number) =>
+  post<{ ok: true }>(`${BASE}/bank-transactions/${id}/undo`, { academicYearId: yearId });
 export const assignBankRow = (yearId: number, id: number, enrollmentId: number, receivableIds: number[]) =>
   post<{ ok: true }>(`${BASE}/bank-transactions/${id}/assign`, { academicYearId: yearId, enrollmentId, receivableIds });
 

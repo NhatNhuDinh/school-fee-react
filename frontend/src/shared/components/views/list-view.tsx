@@ -50,6 +50,11 @@ type ListHeaderProps = PropsWithChildren<{
    */
   description?: string;
   canCreate?: boolean;
+  /**
+   * A quieter header for a screen reached straight from the sidebar, which already says where it is: no breadcrumb,
+   * and a title in Fluent Title 3 (24px) instead of the page-title size.
+   */
+  compact?: boolean;
   /** Extra controls beside Create — export, a bulk action, a view switch. */
   actions?: ReactNode;
   headerClassName?: string;
@@ -58,6 +63,7 @@ type ListHeaderProps = PropsWithChildren<{
 
 export const ListViewHeader = ({
   canCreate,
+  compact,
   resource: resourceFromProps,
   title: titleFromProps,
   description,
@@ -81,7 +87,7 @@ export const ListViewHeader = ({
 
   return (
     <div className={cn("flex flex-col", "gap-3", wrapperClassName)}>
-      <Breadcrumb />
+      {compact ? null : <Breadcrumb />}
       {/*
         Title and description are one block and the actions are another, so the
         description flows under the title and stops short of the buttons rather
@@ -99,7 +105,12 @@ export const ListViewHeader = ({
         )}
       >
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-3xl font-bold leading-9 tracking-tight">
+          <h1
+            className={cn(
+              "truncate tracking-tight",
+              compact ? "text-title3 font-semibold" : "text-3xl leading-9 font-bold"
+            )}
+          >
             {title}
           </h1>
           {description && (
