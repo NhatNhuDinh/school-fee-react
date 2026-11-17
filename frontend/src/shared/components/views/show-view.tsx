@@ -2,13 +2,10 @@
 
 import type { PropsWithChildren } from "react";
 
-import { ArrowLeftIcon } from "lucide-react";
 import {
-  useBack,
   useNavigation,
   useResourceParams,
 } from "@refinedev/core";
-import { Button } from "@/shared/ui/button";
 import { RefreshButton } from "@/shared/components/buttons/refresh";
 import { cn } from "@/shared/lib/utils";
 import { PageActions, PageTitle } from "@/shared/components/layout/page-slots";
@@ -48,7 +45,6 @@ export const ShowViewHeader = ({
   resource: resourceFromProps,
   title: titleFromProps,
 }: ShowViewHeaderProps) => {
-  const back = useBack();
   const { list } = useNavigation();
 
 
@@ -65,11 +61,8 @@ export const ShowViewHeader = ({
 
   return (
     <>
-      {/* The back arrow and the name are in the top bar, with the actions; see page-slots.tsx. */}
+      {/* The name is in the top bar, with the actions; see page-slots.tsx. */}
       <PageTitle>
-        <Button data-print="hide" variant="ghost" size="icon" onClick={back} className="-ms-2 shrink-0">
-          <ArrowLeftIcon className="h-4 w-4" />
-        </Button>
         <h1 className="min-w-0 truncate text-xl font-semibold leading-7 tracking-tight">{title}</h1>
       </PageTitle>
       <PageActions>

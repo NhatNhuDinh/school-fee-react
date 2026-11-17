@@ -1,5 +1,5 @@
 import { useCan, useCustom, useCustomMutation, useShow } from "@refinedev/core";
-import { ArrowLeft, Pencil, Plus, RefreshCw, Search } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Search } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router";
 
@@ -131,16 +131,6 @@ export const FeeCollectionBatchShow = () => {
     <ListView className="h-[calc(100svh-4rem-2*var(--shell-gutter-y))] min-h-[40rem]">
       {/* The name and the actions are in the top bar (see layout/page-slots.tsx); the page starts at the figures. */}
       <PageTitle>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Quay lại danh sách"
-          className="-ms-2 shrink-0"
-          onClick={() => navigate("/fee_collection_batches")}
-        >
-          <ArrowLeft />
-        </Button>
         <h1 className="min-w-0 truncate text-xl font-semibold leading-7 tracking-tight">{batch.name}</h1>
         <BatchStatusBadge status={batch.status} />
       </PageTitle>
