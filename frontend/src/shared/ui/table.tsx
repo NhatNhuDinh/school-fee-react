@@ -103,7 +103,8 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-border transition-colors duration-(--dur-faster)",
+        // `group/row`: a frozen cell paints over the row, so it has to paint the row's hover itself — it asks the row.
+        "group/row border-b border-border transition-colors duration-(--dur-faster)",
         "hover:bg-accent data-[state=selected]:bg-brand-subtle",
         className
       )}
@@ -156,6 +157,9 @@ function TableCell({
       data-slot="table-cell"
       className={cn(
         "h-11 px-2 py-1 align-middle whitespace-nowrap",
+        // Every cell paints the row's hover itself, in step. A frozen cell has to (it covers the row), and if the plain ones
+        // left it to the row's own fade, a row would be half one colour and half another for the length of the transition.
+        "transition-colors duration-(--dur-faster) group-hover/row:bg-accent",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         ALIGN[align],
         className

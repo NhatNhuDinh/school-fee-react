@@ -4,12 +4,11 @@ import {
   useActiveAuthProvider,
   useGetIdentity,
   useLogout,
-  useRefineOptions,
 } from "@refinedev/core";
-import { useKBar } from "@refinedev/kbar";
-import { LogOutIcon, SearchIcon, UserRoundIcon } from "lucide-react";
+import { LogOutIcon, UserRoundIcon } from "lucide-react";
 import { Link } from "react-router";
 
+import { BrandMark, BrandWordmark } from "@/shared/components/layout/brand-logo";
 import { AcademicYearSelect } from "@/shared/components/academic-year/academic-year-select";
 import { NotificationBell } from "@/shared/components/layout/notification-bell";
 import { ThemeCustomizer } from "@/shared/components/theme/theme-customizer";
@@ -42,7 +41,6 @@ type Identity = {
  */
 export function Header() {
   const { isMobile } = useSidebar();
-  const { title } = useRefineOptions();
 
   return (
     <header
@@ -69,19 +67,13 @@ export function Header() {
             className="size-9 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
           />
 
-          {/* On mobile the sidebar brand is off-canvas, so restate it here. */}
+          {/* On mobile the sidebar is off-canvas, so restate the brand here. */}
           {isMobile && (
             <div className="flex min-w-0 items-center gap-2">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground [&_svg]:size-4">
-                {title.icon}
-              </div>
-              <span className="truncate text-sm font-bold tracking-tight">
-                {title.text}
-              </span>
+              <BrandMark className="size-7" />
+              <BrandWordmark className="truncate" />
             </div>
           )}
-
-          <CommandSearch />
         </div>
 
         <div className="flex items-center gap-1">
@@ -93,38 +85,6 @@ export function Header() {
         </div>
       </div>
     </header>
-  );
-}
-
-/**
- * Opens the refine command palette (`<RefineKbar />`), the same thing ⌘K does.
- */
-function CommandSearch() {
-  const { query } = useKBar();
-
-  return (
-    <button
-      type="button"
-      onClick={() => query.toggle()}
-      className={cn(
-        "relative hidden h-9 w-56 items-center gap-2 rounded-lg lg:w-72",
-        "border border-input bg-muted/40 ps-3 pe-3 text-start text-sm",
-        "text-muted-foreground transition-colors hover:bg-muted/70",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "sm:flex"
-      )}
-    >
-      <SearchIcon className="size-4 shrink-0" />
-      <span className="flex-1 truncate">Tìm kiếm nhanh…</span>
-      <kbd
-        className={cn(
-          "pointer-events-none hidden shrink-0 rounded border border-border bg-muted",
-          "px-1.5 py-0.5 font-mono text-[10px] font-medium lg:inline-block"
-        )}
-      >
-        ⌘K
-      </kbd>
-    </button>
   );
 }
 

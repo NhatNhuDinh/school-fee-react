@@ -16,7 +16,6 @@ import type { StudentStructure } from "@/domains/student/types";
 import { API_URL } from "@/shared/api/constants";
 import { DeleteButton } from "@/shared/components/buttons/delete";
 import { DataTablePagination } from "@/shared/components/data-table/data-table-pagination";
-import { Breadcrumb } from "@/shared/components/layout/breadcrumb";
 import { ListView } from "@/shared/components/views/list-view";
 import { customResult } from "@/shared/hooks/use-custom-result";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
@@ -111,7 +110,6 @@ export const FeeCollectionBatchShow = () => {
   if (!batch) {
     return (
       <ListView>
-        <Breadcrumb />
         <div className="text-muted-foreground p-10 text-center text-sm">
           {query.isLoading ? "Đang tải…" : "Không tìm thấy đợt thu này."}
         </div>
@@ -131,7 +129,6 @@ export const FeeCollectionBatchShow = () => {
     // arithmetic as every table; see CLAUDE.md, "A table fills the screen".
     <ListView className="h-[calc(100svh-4rem-2*var(--shell-gutter-y))] min-h-[40rem]">
       <div className="flex flex-col gap-3">
-        <Breadcrumb />
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
@@ -381,10 +378,10 @@ function StudentsTab({
             const paidInFull = student.receivableAmount > 0 && student.collectedAmount >= student.receivableAmount;
             return (
               <TableRow key={student.id}>
-                <TableCell className="bg-card text-muted-foreground sticky left-0 z-10 w-14 min-w-14 ps-5 tabular-nums">
+                <TableCell className="bg-card group-hover/row:bg-accent text-muted-foreground sticky left-0 z-10 w-14 min-w-14 ps-5 tabular-nums">
                   {(page - 1) * pageSize + index + 1}
                 </TableCell>
-                <TableCell className="bg-card sticky left-14 z-10">
+                <TableCell className="bg-card group-hover/row:bg-accent sticky left-14 z-10">
                   <div className="flex flex-col leading-tight">
                     <span className="font-medium">{student.fullName}</span>
                     <span className="text-muted-foreground text-xs">{student.studentCode}</span>
@@ -446,8 +443,38 @@ function StudentsTab({
 
 // ---- tab: khoản thu
 
-function ItemsTab({ items }: { items: FeeCollectionBatchItem[] | undefined }) {
+type ItemKind = "any" | "mandatory" | "optional";
+
+const ITEM_KIND_OPTIONS: { value: ItemKind; label: string }[] = [
+  { value: "any", label: "Tất cả" },
+  { value: "mandatory", label: "Bắt buộc" },
+  { value: "optional", label: "Tự chọn" },
+];
+
+function ItemsTab({ items: allItems }: { items: FeeCollectionBatchItem[] | undefined }) {
+  const [search, setSearch] = React.useState("");
+  const [kindFilter, setKindFilter] = React.useState<ItemKind>("any");
+  // A đợt has a handful of khoản thu, all already in the browser, so this narrows locally.
+  const term = search.trim().toLowerCase();
+  const items = allItems?.filter(
+    (item) =>
+      (kindFilter === "any" || (kindFilter === "mandatory") === item.mandatory) &&
+      (term === "" || item.name.toLowerCase().includes(term))
+  );
   return (
+    <>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-2.5">
+        <div className="relative min-w-60 flex-1">
+          <Search className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm theo tên khoản thu…"
+            className="ps-9"
+          />
+        </div>
+        <Segmented label="Loại khoản thu" size="sm" value={kindFilter} onChange={setKindFilter} options={ITEM_KIND_OPTIONS} />
+      </div>
     <Table containerClassName="min-h-0 flex-1 overflow-y-auto" style={{ minWidth: 960 }}>
       <TableHeader sticky>
         <TableRow>
@@ -504,12 +531,13 @@ function ItemsTab({ items }: { items: FeeCollectionBatchItem[] | undefined }) {
         })}
         {items && items.length === 0 && (
           <TableRow>
-            <TableCell colSpan={9}className="text-muted-foreground py-10 text-center">
-              Đợt thu này chưa có khoản thu nào.
+            <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
+              {allItems && allItems.length > 0 ? "Không có khoản thu nào khớp bộ lọc." : "Đợt thu này chưa có khoản thu nào."}
             </TableCell>
           </TableRow>
         )}
       </TableBody>
     </Table>
+    </>
   );
 }

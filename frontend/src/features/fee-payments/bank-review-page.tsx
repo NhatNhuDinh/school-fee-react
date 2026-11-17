@@ -284,7 +284,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
                     <TableCell>
                       <ContentCell row={row} />
                     </TableCell>
-                    <TableCell className="max-w-36 truncate font-semibold" title={row.suggestedStudentName ?? undefined}>
+                    <TableCell className="max-w-32 truncate font-semibold" title={row.suggestedStudentName ?? undefined}>
                       {row.suggestedStudentName ?? "—"}
                     </TableCell>
                     <TableCell>{row.suggestedClassName ?? "—"}</TableCell>
@@ -294,7 +294,7 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
                     <TableCell>
                       <Badge variant={STATUS[row.status].variant}>{STATUS[row.status].label}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground max-w-36 truncate" title={detailOf(row)}>
+                    <TableCell className="text-muted-foreground max-w-32 truncate" title={detailOf(row)}>
                       {detailOf(row)}
                     </TableCell>
                     <TableCell>
@@ -389,7 +389,7 @@ function ContentCell({ row }: { row: BankRow }) {
   }
 
   return (
-    <div className="flex w-60 items-center gap-2">
+    <div className="flex w-48 items-center gap-2">
       <span className="min-w-0 flex-1 truncate" title={content}>
         {content}
       </span>

@@ -6,11 +6,11 @@
    Five independent knobs, all held as state on the <html> element:
 
      .dark                light / dark mode
-     data-color-preset    brand colour     fluent (default) | navy | blue | ...
+     data-color-preset    brand colour     navy (default) | fluent | blue | ...
                           `fluent` is Fluent 2's own palette (§10); the others
                           are derived from a hue (§1, §3-4)
      data-radius          corner rounding  none | sm | md | lg | xl
-     data-sidebar-tone    sidebar surface  dark (default) | light
+     data-sidebar-tone    sidebar surface  light (default) | dark
      data-density         layout rhythm    compact | comfortable | spacious
 
    Every preset declares only a handful of numbers. All semantic tokens below
@@ -293,6 +293,13 @@
   --sidebar-primary: var(--gold-400);
   --sidebar-primary-foreground: oklch(0.22 calc(var(--preset-sidebar-c) * 1.1) var(--preset-h));
   --sidebar-ring: var(--gold-400);
+  /* What the rail needs beyond Fluent's own five: the selected row, the field the search sits in, and the brand
+     colour of the logo. On a dark rail the selected row is the hover step, the field is that same step, and the
+     logo is the foreground; the light rail overrides all four. */
+  --sidebar-selected: var(--sidebar-accent);
+  --sidebar-selected-foreground: var(--sidebar-accent-foreground);
+  --sidebar-field: var(--sidebar-accent);
+  --sidebar-brand: var(--sidebar-foreground);
 
   /* Elevation — the shadow has to read as an edge, not a haze, so each step
      leads with a tight contact shadow and only then spreads. The tint is the
@@ -383,6 +390,13 @@
   --sidebar-primary: var(--gold-400);
   --sidebar-primary-foreground: oklch(0.2 calc(var(--preset-sidebar-c) * 1.1) var(--preset-h));
   --sidebar-ring: var(--gold-400);
+  /* What the rail needs beyond Fluent's own five: the selected row, the field the search sits in, and the brand
+     colour of the logo. On a dark rail the selected row is the hover step, the field is that same step, and the
+     logo is the foreground; the light rail overrides all four. */
+  --sidebar-selected: var(--sidebar-accent);
+  --sidebar-selected-foreground: var(--sidebar-accent-foreground);
+  --sidebar-field: var(--sidebar-accent);
+  --sidebar-brand: var(--sidebar-foreground);
 
   --elevation-1: 0 1px 2px 0 oklch(0 0 0 / 0.5);
   --elevation-2: 0 1px 2px 0 oklch(0 0 0 / 0.6), 0 4px 12px -2px oklch(0 0 0 / 0.5);
@@ -402,14 +416,19 @@
    -------------------------------------------------------------------------- */
 
 :root[data-sidebar-tone="light"] {
-  --sidebar: oklch(1 0 0);
+  --sidebar: oklch(0.982 0.004 var(--preset-h));
   --sidebar-foreground: oklch(0.24 0.03 var(--preset-h));
-  --sidebar-accent: oklch(0.958 0.012 var(--preset-h));
+  --sidebar-accent: oklch(0.953 0.01 var(--preset-h));
   --sidebar-accent-foreground: oklch(0.24 0.03 var(--preset-h));
   --sidebar-border: var(--border);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
   --sidebar-ring: var(--ring);
+  /* The selected row is a brand wash with brand-coloured type (no bar, no gold); the search field is a white well. */
+  --sidebar-selected: var(--brand-subtle);
+  --sidebar-selected-foreground: var(--primary);
+  --sidebar-field: var(--card);
+  --sidebar-brand: var(--primary);
 }
 
 .dark[data-sidebar-tone="light"] {
@@ -421,6 +440,11 @@
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
   --sidebar-ring: var(--ring);
+  /* The selected row is a brand wash with brand-coloured type (no bar, no gold); the search field is a white well. */
+  --sidebar-selected: var(--brand-subtle);
+  --sidebar-selected-foreground: var(--primary);
+  --sidebar-field: var(--card);
+  --sidebar-brand: var(--primary);
 }
 
 /* --------------------------------------------------------------------------
@@ -782,6 +806,10 @@
   --sidebar-primary: #0f6cbd; /* colorBrandBackground */
   --sidebar-primary-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
   --sidebar-ring: #0f6cbd; /* colorCompoundBrandStroke */
+  --sidebar-selected: #ebf3fc; /* colorBrandBackground2 */
+  --sidebar-selected-foreground: #0f6cbd; /* colorBrandForeground1 */
+  --sidebar-field: #ffffff;
+  --sidebar-brand: #0f6cbd;
 
   /* The four elevation steps the shell already uses, on Fluent's shadows:
      a card sits at 2, a hover or a menu at 8, a popover at 16, a dialog at 64. */
@@ -811,6 +839,10 @@
   --sidebar-primary: #479ef5; /* colorBrandForeground1 (dark) */
   --sidebar-primary-foreground: #242424; /* colorNeutralForegroundInverted (dark) */
   --sidebar-ring: #479ef5; /* colorCompoundBrandStroke (dark) */
+  --sidebar-selected: var(--sidebar-accent);
+  --sidebar-selected-foreground: var(--sidebar-accent-foreground);
+  --sidebar-field: var(--sidebar-accent);
+  --sidebar-brand: var(--sidebar-foreground);
 }
 
 :root.dark[data-color-preset="fluent"] {
@@ -895,4 +927,8 @@
   --sidebar-primary: #115ea3; /* colorBrandBackground */
   --sidebar-primary-foreground: #ffffff; /* colorNeutralForegroundOnBrand */
   --sidebar-ring: #479ef5; /* colorCompoundBrandStroke */
+  --sidebar-selected: var(--sidebar-accent);
+  --sidebar-selected-foreground: var(--sidebar-accent-foreground);
+  --sidebar-field: var(--sidebar-accent);
+  --sidebar-brand: var(--sidebar-foreground);
 }

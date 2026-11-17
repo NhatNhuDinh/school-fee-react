@@ -3,11 +3,16 @@ import React from "react";
 
 import type { FeeCollectionBatch } from "@/domains/fee-collection-batch/types";
 import {
+  NOTIFICATION_STATUS_LABELS,
   isNotificationBusy,
   type CreatedNotification,
   type FeeNotification,
+  type FeeNotificationStatus,
 } from "@/domains/fee-notification/types";
+import { Search } from "lucide-react";
 import { formatDateTime, formatNumber } from "@/shared/lib/format";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { toast } from "sonner";
 import { NotificationComposeDialog } from "./notification-compose-dialog";
@@ -31,6 +36,8 @@ export function NotificationsTab({
   setComposing: (open: boolean) => void;
 }) {
   const [openId, setOpenId] = React.useState<number | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<"any" | FeeNotificationStatus>("any");
   const { data: canWrite } = useCan({ resource: "fee_notifications", action: "create" });
 
   const { result, query } = useList<FeeNotification>({
@@ -45,8 +52,15 @@ export function NotificationsTab({
       },
     },
   });
-  const rows = result?.data ?? [];
-  const opened = rows.find((row) => row.id === openId) ?? null;
+  const allRows = result?.data ?? [];
+  const opened = allRows.find((row) => row.id === openId) ?? null;
+  // The đợt has a few dozen notifications at most, all fetched above, so this narrows locally.
+  const term = search.trim().toLowerCase();
+  const rows = allRows.filter(
+    (row) =>
+      (statusFilter === "any" || row.status === statusFilter) &&
+      (term === "" || row.subject.toLowerCase().includes(term))
+  );
 
   function created({ notification, requested, skippedAlreadyNotified, skippedNoDebt }: CreatedNotification, draft: boolean) {
     setComposing(false);
@@ -62,6 +76,30 @@ export function NotificationsTab({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-2.5">
+        <div className="relative min-w-60 flex-1">
+          <Search className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm theo tiêu đề thông báo…"
+            className="ps-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "any" | FeeNotificationStatus)}>
+          <SelectTrigger className="w-44" aria-label="Trạng thái">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Trạng thái: Tất cả</SelectItem>
+            {(Object.keys(NOTIFICATION_STATUS_LABELS) as FeeNotificationStatus[]).map((status) => (
+              <SelectItem key={status} value={status}>
+                {NOTIFICATION_STATUS_LABELS[status]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Table>
           <TableHeader sticky>
@@ -104,7 +142,11 @@ export function NotificationsTab({
             {rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-muted-foreground py-12 text-center">
-                  {query.isLoading ? "Đang tải…" : "Chưa có đợt thông báo nào. Bấm “Lập đợt thông báo” để bắt đầu."}
+                  {query.isLoading
+                    ? "Đang tải…"
+                    : allRows.length > 0
+                      ? "Không có thông báo nào khớp bộ lọc."
+                      : "Chưa có đợt thông báo nào. Bấm “Lập đợt thông báo” để bắt đầu."}
                 </TableCell>
               </TableRow>
             )}

@@ -125,7 +125,7 @@ export function DateRangePicker({
                   !activePreset && draft?.from && "bg-brand-subtle font-semibold"
                 )}
               >
-                Tùy chọn khoảng ngày
+                Tùy chọn
               </span>
             </li>
           </ul>

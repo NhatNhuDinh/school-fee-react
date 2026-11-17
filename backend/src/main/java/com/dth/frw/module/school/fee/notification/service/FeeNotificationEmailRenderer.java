@@ -103,12 +103,9 @@ public class FeeNotificationEmailRenderer {
                 + "<div style=\"font-size:14px;font-weight:600;line-height:20px;color:" + INK + "\">" + esc(c.orderCode()) + "</div></td>"
                 + "</tr></table>"
                 + "<div style=\"margin-top:24px;border-top:1px solid " + LINE + "\"></div>"
-                // title + status
+                // title
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"margin-top:24px\"><tr>"
                 + "<td valign=\"middle\" style=\"font-size:20px;font-weight:600;line-height:28px;color:" + INK + "\">" + esc(c.subject()) + "</td>"
-                + "<td valign=\"middle\" align=\"right\" width=\"140\">"
-                + "<span style=\"display:inline-block;padding:3px 10px;border-radius:13px;background:#fff5e0;font-size:12px;line-height:18px;color:#8c610a;white-space:nowrap\">"
-                + "<span style=\"color:#d98c0d\">&#9679;</span>&nbsp;Chưa thanh toán</span></td>"
                 + "</tr></table>"
                 // greeting + body
                 + "<div style=\"margin-top:20px;font-size:14px;line-height:22px;color:" + INK + "\">Kính gửi Quý phụ huynh học sinh "

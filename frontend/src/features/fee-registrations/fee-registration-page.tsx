@@ -236,10 +236,10 @@ function RegistrationOfYear({ yearId }: { yearId: number }) {
                   <TableBody>
                     {pageRows.map((student, index) => (
                       <TableRow key={student.enrollmentId}>
-                        <TableCell className="bg-card text-muted-foreground sticky left-0 z-10 ps-5 tabular-nums">
+                        <TableCell className="bg-card group-hover/row:bg-accent text-muted-foreground sticky left-0 z-10 ps-5 tabular-nums">
                           {(page - 1) * pageSize + index + 1}
                         </TableCell>
-                        <TableCell className="bg-card sticky left-14 z-10">
+                        <TableCell className="bg-card group-hover/row:bg-accent sticky left-14 z-10">
                           <div className="flex flex-col leading-tight">
                             <span className="font-medium">{student.fullName}</span>
                             <span className="text-muted-foreground text-xs">{student.studentCode}</span>

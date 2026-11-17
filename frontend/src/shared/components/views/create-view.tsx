@@ -6,7 +6,6 @@ import {
   useResourceParams,
 } from "@refinedev/core";
 import type { PropsWithChildren } from "react";
-import { Breadcrumb } from "@/shared/components/layout/breadcrumb";
 import { Button } from "@/shared/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
 
@@ -61,7 +60,6 @@ export const CreateViewHeader = ({
 
   return (
     <div className={cn("flex flex-col", "gap-4", wrapperClassName)}>
-      <Breadcrumb />
       <div
         className={cn(
           "flex",

@@ -4,21 +4,23 @@ import React from "react";
 import {
   useMenu,
   useLink,
-  useRefineOptions,
   useActiveAuthProvider,
   useGetIdentity,
   useLogout,
   usePermissions,
   type TreeMenuItem,
 } from "@refinedev/core";
+import { useKBar } from "@refinedev/kbar";
 import {
   ChevronRight,
   ListIcon,
   LogOutIcon,
   PanelLeftIcon,
+  SearchIcon,
   UserRoundIcon,
 } from "lucide-react";
 import { Link } from "react-router";
+import { BrandMark, BrandWordmark } from "@/shared/components/layout/brand-logo";
 import { permissionFor } from "@/shared/lib/permissions";
 
 import {
@@ -67,24 +69,25 @@ type Identity = {
 function navRowClass({
   isSelected,
   isCollapsed,
+  isChild,
 }: {
   isSelected?: boolean;
   isCollapsed?: boolean;
+  /** A row inside an opened group: the same row, indented a step so it reads as belonging to its parent. */
+  isChild?: boolean;
 }) {
   return cn(
-    "group/nav focus-ring relative flex w-full items-center gap-3 rounded-md",
-    "text-sm transition-colors duration-(--dur-faster)",
-    isCollapsed ? "h-10 justify-center px-0" : "px-2.5 py-2.5",
+    "group/nav focus-ring relative flex w-full items-center rounded-lg",
+    "transition-colors duration-(--dur-faster)",
+    isCollapsed
+      ? "h-10 justify-center px-0 text-sm"
+      : isChild
+        ? "h-9 gap-2.5 ps-[30px] pe-2.5 text-sm"
+        : "h-9 gap-2.5 px-2.5 text-sm",
     isSelected
-      ? [
-          // Fluent's selected item has no fill. It is told apart by the type
-          // going semibold, the icon taking the brand colour, and a 4×20px
-          // brand bar beside it — not the full height of the row.
-          "text-sidebar-foreground font-semibold",
-          "[&_svg]:text-sidebar-primary",
-          "before:absolute before:top-1/2 before:left-0 before:h-5 before:w-1",
-          "before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary",
-        ]
+      ? // The selected row is a brand wash with brand-coloured, semibold type. No bar and no gold: the fill alone says
+        // where you are, which is what lets it read the same on a light rail and a dark one.
+        "bg-sidebar-selected text-sidebar-selected-foreground font-semibold [&_svg]:text-sidebar-selected-foreground"
       : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground"
   );
 }
@@ -161,10 +164,11 @@ export function Sidebar() {
 
       <ShadcnSidebarContent
         className={cn(
-          "scrollbar-fade gap-3 overflow-x-hidden border-r border-sidebar-border py-4",
+          "scrollbar-fade gap-3 overflow-x-hidden border-r border-sidebar-border pb-4 pt-2",
           isCollapsed ? "px-2" : "px-3"
         )}
       >
+        {!isCollapsed && <SidebarSearch />}
         {visibleItems.map((item: TreeMenuItem) => (
           <SidebarItem
             key={item.key || item.name}
@@ -181,55 +185,41 @@ export function Sidebar() {
 }
 
 /* --------------------------------------------------------------------------
-   Brand block — mirrors the header height so the two rules line up.
+   Brand block — the mark, the name, and the way to fold the rail. Nothing else: the school the account belongs to
+   is in the account menu, not here.
    -------------------------------------------------------------------------- */
 
-/** Shown in the sidebar header; the document title keeps the full system name. */
-const BRAND_NAME = "Thu Phí Trường Học";
-
 function SidebarBrand() {
-  const { title } = useRefineOptions();
-  // The system's name on top and, beneath it, the school the account belongs to;
-  // a system administrator belongs to none, so the line falls back to "Trang chủ".
-  const { data: identity } = useGetIdentity<{
-    organization?: { name: string; logo?: string | null } | null;
-  }>();
-  const schoolName = identity?.organization?.name;
-  const schoolLogo = identity?.organization?.logo;
   const { open, isMobile, toggleSidebar } = useShadcnSidebar();
   const isCollapsed = !open && !isMobile;
 
   return (
     <ShadcnSidebarHeader
       className={cn(
-        "h-16 shrink-0 flex-row items-center gap-3 overflow-hidden",
-        "border-b border-r border-sidebar-border p-0",
-        isCollapsed ? "justify-center px-2" : "px-4"
+        "h-16 shrink-0 flex-row items-center gap-2.5 overflow-hidden border-r border-sidebar-border p-0",
+        isCollapsed ? "justify-center px-2" : "ps-4 pe-3"
       )}
     >
-      {/* Collapsed, the logo doubles as the way back out of the icon rail —
-          otherwise only the hairline rail or Ctrl/Cmd+B can expand it. */}
-      <BrandMark
-        icon={title.icon}
-        logo={schoolLogo}
-        isCollapsed={isCollapsed}
-        onExpand={toggleSidebar}
-      />
-
-      {!isCollapsed && (
-        <>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-sm font-bold tracking-tight text-sidebar-foreground">
-              {BRAND_NAME}
-            </span>
-            <span
-              title={schoolName}
-              className="truncate text-xs font-medium text-sidebar-foreground/60"
+      {isCollapsed ? (
+        // Collapsed, the mark doubles as the way back out of the icon rail — otherwise only the hairline rail or
+        // Ctrl/Cmd+B can expand it.
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label="Mở rộng thanh bên"
+              className="rounded-lg transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
-              {schoolName ?? "Trang chủ"}
-            </span>
-          </div>
-
+              <BrandMark />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Mở rộng thanh bên</TooltipContent>
+        </Tooltip>
+      ) : (
+        <>
+          <BrandMark className="size-[34px]" />
+          <BrandWordmark className="min-w-0 flex-1 truncate" />
           <Button
             variant="ghost"
             size="icon"
@@ -248,51 +238,29 @@ function SidebarBrand() {
   );
 }
 
-function BrandMark({
-  icon,
-  logo,
-  isCollapsed,
-  onExpand,
-}: {
-  icon: React.ReactNode;
-  /** The school's logo as a data URL; replaces the icon when present. */
-  logo?: string | null;
-  isCollapsed: boolean;
-  onExpand: () => void;
-}) {
-  // A logo sits on white and fills the square; the icon sits on the brand colour.
-  const mark = logo ? (
-    <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
-      <img src={logo} alt="" className="size-full object-contain" />
-    </div>
-  ) : (
-    <div
-      className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-lg",
-        "bg-sidebar-primary text-sidebar-primary-foreground",
-        "[&_svg]:size-4"
-      )}
-    >
-      {icon}
-    </div>
-  );
-
-  if (!isCollapsed) return mark;
+/**
+ * Opens the command palette, the same thing ⌘K does. It lives here rather than in the top bar: finding a screen is
+ * what the rail is for, and the bar keeps only what belongs to the session (the year, notifications, the account).
+ */
+function SidebarSearch() {
+  const { query } = useKBar();
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onExpand}
-          aria-label="Mở rộng thanh bên"
-          className="rounded-lg transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        >
-          {mark}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right">Mở rộng thanh bên</TooltipContent>
-    </Tooltip>
+    <button
+      type="button"
+      onClick={() => query.toggle()}
+      className={cn(
+        "focus-ring mb-1 flex h-9 w-full shrink-0 items-center gap-2 rounded-full border border-sidebar-border",
+        "bg-sidebar-field ps-3 pe-2 text-start text-[13px] text-sidebar-foreground/60",
+        "transition-colors hover:border-sidebar-foreground/30"
+      )}
+    >
+      <SearchIcon className="size-4 shrink-0" />
+      <span className="flex-1 truncate">Tìm kiếm nhanh…</span>
+      <kbd className="pointer-events-none rounded-md border border-sidebar-border px-1.5 py-0.5 font-sans text-[11px] font-medium">
+        ⌘K
+      </kbd>
+    </button>
   );
 }
 
@@ -387,7 +355,7 @@ function SidebarSubmenu({ item, selectedKey, depth = 0 }: MenuItemProps) {
       </CollapsibleTrigger>
 
       <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-        <div className="ms-4 mt-0.5 flex flex-col gap-0.5 border-s border-sidebar-border ps-2">
+        <div className="mt-0.5 flex flex-col gap-0.5">
           {children.map((child) => (
             <SidebarItem
               key={child.key || child.name}
@@ -440,10 +408,11 @@ function SidebarSubmenuFlyout({ item, selectedKey }: MenuItemProps) {
   );
 }
 
-function SidebarLink({ item, selectedKey, isCollapsed }: MenuItemProps) {
+function SidebarLink({ item, selectedKey, isCollapsed, depth = 0 }: MenuItemProps) {
   const Link = useLink();
   const { isMobile, setOpenMobile } = useShadcnSidebar();
   const isSelected = item.key === selectedKey;
+  const isChild = depth > 0 && !isCollapsed;
   const label = getDisplayName(item);
   const badge = item.meta?.badge as React.ReactNode | undefined;
 
@@ -453,7 +422,7 @@ function SidebarLink({ item, selectedKey, isCollapsed }: MenuItemProps) {
       aria-current={isSelected ? "page" : undefined}
       // Tapping a link on mobile should close the drawer behind it.
       onClick={() => isMobile && setOpenMobile(false)}
-      className={navRowClass({ isSelected, isCollapsed })}
+      className={navRowClass({ isSelected, isCollapsed, isChild })}
     >
       <NavIcon item={item} isSelected={isSelected} />
       {isCollapsed ? (
@@ -496,8 +465,8 @@ function NavIcon({
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center [&_svg]:size-5",
-        isSelected ? "text-sidebar-primary" : "text-current"
+        "flex shrink-0 items-center justify-center [&_svg]:size-[18px]",
+        isSelected ? "text-sidebar-selected-foreground" : "text-current"
       )}
     >
       {getIcon(item)}
@@ -527,7 +496,7 @@ function SidebarUser({ isCollapsed }: { isCollapsed: boolean }) {
   );
 
   return (
-    <ShadcnSidebarFooter className="border-r border-t border-sidebar-border p-2">
+    <ShadcnSidebarFooter className="border-r border-sidebar-border p-2">
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(

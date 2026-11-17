@@ -12,7 +12,6 @@ import {
   type Identity,
   type TokenPair,
 } from "@/shared/api/session";
-import { Breadcrumb } from "@/shared/components/layout/breadcrumb";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Badge } from "@/shared/ui/badge";
@@ -90,8 +89,6 @@ export const Profile = () => {
 
   return (
     <div className={cn("flex flex-col gap-4", "screen-enter screen-enter-stagger")}>
-      <Breadcrumb />
-
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Tài khoản của bạn</h1>
         <p className="text-muted-foreground text-sm">
