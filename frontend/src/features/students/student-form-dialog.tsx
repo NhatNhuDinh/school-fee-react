@@ -185,7 +185,7 @@ export function StudentFormDialog({ year, groups, record, defaultClassId, onClos
                       onClick={() => void goTo(index)}
                       className={cn(
                         "flex w-full items-center gap-3 rounded-md px-3 py-3 text-start",
-                        step === index ? "bg-primary/10 text-brand" : "hover:bg-accent/50"
+                        step === index ? "bg-brand-subtle text-brand" : "hover:bg-accent/50"
                       )}
                     >
                       <span

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
+import { PageActions, PageTitle } from "@/shared/components/layout/page-slots";
 import {
   useBack,
   useResourceParams,
@@ -44,8 +45,6 @@ export const EditViewHeader = ({
   resource: resourceFromProps,
   title: titleFromProps,
   actionsSlot,
-  wrapperClassName,
-  headerClassName,
 }: EditViewHeaderProps) => {
   const back = useBack();
 
@@ -65,34 +64,23 @@ export const EditViewHeader = ({
     String(resource?.meta?.label ?? identifier ?? resource?.name ?? "");
 
   return (
-    <div className={cn("flex flex-col", "gap-4", wrapperClassName)}>
-      <div
-        className={cn(
-          "flex",
-          "gap-1",
-          "items-center",
-          "justify-between",
-          "-ml-2.5",
-          headerClassName
-        )}
-      >
-        <div className="flex min-w-0 items-center gap-1">
-          <Button data-print="hide" variant="ghost" size="icon" onClick={back}>
-            <ArrowLeftIcon className="h-4 w-4" />
-          </Button>
-          <h1 className="min-w-0 truncate text-3xl font-bold leading-9 tracking-tight">{title}</h1>
-        </div>
-
-        <div data-print="hide" className="flex shrink-0 items-center gap-2">
-          {actionsSlot}
-          <RefreshButton
-            variant="outline"
-            recordItemId={recordItemId}
-            resource={resourceName}
-          />
-        </div>
-      </div>
-    </div>
+    <>
+      {/* The back arrow and the name are in the top bar, with the actions; see page-slots.tsx. */}
+      <PageTitle>
+        <Button data-print="hide" variant="ghost" size="icon" onClick={back} className="-ms-2 shrink-0">
+          <ArrowLeftIcon className="h-4 w-4" />
+        </Button>
+        <h1 className="min-w-0 truncate text-xl font-semibold leading-7 tracking-tight">{title}</h1>
+      </PageTitle>
+      <PageActions>
+      {actionsSlot}
+      <RefreshButton
+        variant="outline"
+        recordItemId={recordItemId}
+        resource={resourceName}
+      />
+      </PageActions>
+    </>
   );
 };
 

@@ -11,6 +11,7 @@ import {
   DataTableRefresh,
 } from "@/shared/components/data-table/data-table-actions";
 import { CreateButton } from "@/shared/components/buttons/create";
+import { PageActions, PageTitle } from "@/shared/components/layout/page-slots";
 import { cn } from "@/shared/lib/utils";
 
 type ListViewProps = PropsWithChildren<{
@@ -49,11 +50,6 @@ type ListHeaderProps = PropsWithChildren<{
    */
   description?: string;
   canCreate?: boolean;
-  /**
-   * A quieter header for a screen reached straight from the sidebar, which already says where it is: no breadcrumb,
-   * and a title in Fluent Title 3 (24px) instead of the page-title size.
-   */
-  compact?: boolean;
   /** Extra controls beside Create — export, a bulk action, a view switch. */
   actions?: ReactNode;
   headerClassName?: string;
@@ -62,7 +58,6 @@ type ListHeaderProps = PropsWithChildren<{
 
 export const ListViewHeader = ({
   canCreate,
-  compact,
   resource: resourceFromProps,
   title: titleFromProps,
   description,
@@ -85,46 +80,23 @@ export const ListViewHeader = ({
   const hasActions = isCreateButtonVisible || actions;
 
   return (
-    <div className={cn("flex flex-col", "gap-3", wrapperClassName)}>
-      {/*
-        Title and description are one block and the actions are another, so the
-        description flows under the title and stops short of the buttons rather
-        than running behind them. `items-start` keeps the action cluster on the
-        title's line however many lines the description wraps to.
-      */}
-      <div
-        className={cn(
-          "flex",
-          "flex-wrap",
-          "items-start",
-          "justify-between",
-          "gap-x-4 gap-y-3",
-          headerClassName
-        )}
-      >
-        <div className="min-w-0 flex-1">
-          <h1
-            className={cn(
-              "truncate tracking-tight",
-              compact ? "text-title3 font-semibold" : "text-3xl leading-9 font-bold"
-            )}
-          >
-            {title}
-          </h1>
-          {description && (
-            <p className="text-muted-foreground mt-1.5 max-w-3xl text-sm">
-              {description}
-            </p>
-          )}
-        </div>
-        {hasActions && (
-          <div data-print="hide" className="flex shrink-0 items-center gap-2">
-            {actions}
-            {isCreateButtonVisible && <CreateButton resource={resourceName} />}
-          </div>
-        )}
-      </div>
-    </div>
+    <>
+      {/* The name and the actions live in the top bar; only the description stays on the page. */}
+      <PageTitle>
+        <h1 className="min-w-0 truncate text-xl font-semibold leading-7 tracking-tight">{title}</h1>
+      </PageTitle>
+      {hasActions && (
+        <PageActions>
+          {actions}
+          {isCreateButtonVisible && <CreateButton resource={resourceName} />}
+        </PageActions>
+      )}
+      {description && (
+        <p className={cn("text-muted-foreground max-w-3xl text-sm", wrapperClassName, headerClassName)}>
+          {description}
+        </p>
+      )}
+    </>
   );
 };
 

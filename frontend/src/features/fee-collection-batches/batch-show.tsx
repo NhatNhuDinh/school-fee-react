@@ -36,6 +36,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { BatchItemsDialog } from "./batch-items-dialog";
 import { BatchStatusBadge } from "./batch-status-badge";
 import { NotificationsTab } from "./notifications-tab";
+import { PageActions, PageTitle } from "@/shared/components/layout/page-slots";
 import { ProgressBar } from "./progress-bar";
 import { Segmented } from "./segmented";
 
@@ -128,47 +129,43 @@ export const FeeCollectionBatchShow = () => {
     // One screen tall, so the pager stays on screen and only the rows scroll — the same
     // arithmetic as every table; see CLAUDE.md, "A table fills the screen".
     <ListView className="h-[calc(100svh-4rem-2*var(--shell-gutter-y))] min-h-[40rem]">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Quay lại danh sách"
-                onClick={() => navigate("/fee_collection_batches")}
-              >
-                <ArrowLeft />
-              </Button>
-              <h1 className="truncate text-3xl font-bold leading-9 tracking-tight">{batch.name}</h1>
-              <BatchStatusBadge status={batch.status} />
-            </div>
-          </div>
-          <div data-print="hide" className="flex shrink-0 items-center gap-2">
-            {canWrite && (
-              <>
-                <Button type="button" variant="outline" disabled={syncing.isPending} onClick={syncRegistrations}>
-                  <RefreshCw className={cn(syncing.isPending && "animate-spin")} />
-                  Cập nhật theo đăng ký
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setEditingItems(true)}>
-                  <Pencil />
-                  Cập nhật khoản thu
-                </Button>
-              </>
-            )}
-            {canDelete && (
-              <DeleteButton
-                resource="fee_collection_batches"
-                recordItemId={batch.id}
-                variant="outline"
-                onSuccess={() => navigate("/fee_collection_batches")}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+      {/* The name and the actions are in the top bar (see layout/page-slots.tsx); the page starts at the figures. */}
+      <PageTitle>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Quay lại danh sách"
+          className="-ms-2 shrink-0"
+          onClick={() => navigate("/fee_collection_batches")}
+        >
+          <ArrowLeft />
+        </Button>
+        <h1 className="min-w-0 truncate text-xl font-semibold leading-7 tracking-tight">{batch.name}</h1>
+        <BatchStatusBadge status={batch.status} />
+      </PageTitle>
+      <PageActions>
+        {canWrite && (
+          <>
+            <Button type="button" variant="outline" disabled={syncing.isPending} onClick={syncRegistrations}>
+              <RefreshCw className={cn(syncing.isPending && "animate-spin")} />
+              Cập nhật theo đăng ký
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setEditingItems(true)}>
+              <Pencil />
+              Cập nhật khoản thu
+            </Button>
+          </>
+        )}
+        {canDelete && (
+          <DeleteButton
+            resource="fee_collection_batches"
+            recordItemId={batch.id}
+            variant="outline"
+            onSuccess={() => navigate("/fee_collection_batches")}
+          />
+        )}
+      </PageActions>
 
       <Card className="grid gap-0 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x">
         <Metric label="Học sinh" value={formatNumber(batch.studentCount)} hint={batchScopeName(batch)} />

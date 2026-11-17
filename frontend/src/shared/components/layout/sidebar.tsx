@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { BrandMark, BrandWordmark } from "@/shared/components/layout/brand-logo";
+import { ThemeCustomizer } from "@/shared/components/theme/theme-customizer";
+import { ThemeToggle } from "@/shared/components/theme/theme-toggle";
 import { permissionFor } from "@/shared/lib/permissions";
 
 import {
@@ -189,6 +191,10 @@ export function Sidebar() {
    is in the account menu, not here.
    -------------------------------------------------------------------------- */
 
+/** The small icon buttons in the rail's header, in the rail's own colours rather than the page's. */
+const RAIL_BUTTON =
+  "size-8 shrink-0 rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground";
+
 function SidebarBrand() {
   const { open, isMobile, toggleSidebar } = useShadcnSidebar();
   const isCollapsed = !open && !isMobile;
@@ -196,8 +202,8 @@ function SidebarBrand() {
   return (
     <ShadcnSidebarHeader
       className={cn(
-        "h-16 shrink-0 flex-row items-center gap-2.5 overflow-hidden border-r border-sidebar-border p-0",
-        isCollapsed ? "justify-center px-2" : "ps-4 pe-3"
+        "h-16 shrink-0 flex-row items-center gap-1 overflow-hidden border-r border-sidebar-border p-0",
+        isCollapsed ? "justify-center px-2" : "ps-4 pe-2"
       )}
     >
       {isCollapsed ? (
@@ -218,17 +224,18 @@ function SidebarBrand() {
         </Tooltip>
       ) : (
         <>
-          <BrandMark className="size-[34px]" />
+          <BrandMark className="me-1.5 size-[34px]" />
           <BrandWordmark className="min-w-0 flex-1 truncate" />
+          {/* Mode and theme belong to how you work, not to the page, so they sit with the brand rather than in the
+              bar; the account menu is the row at the foot of the rail. */}
+          <ThemeToggle className={RAIL_BUTTON} />
+          <ThemeCustomizer className={RAIL_BUTTON} />
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
             aria-label="Thu gọn thanh bên"
-            className={cn(
-              "size-8 shrink-0 rounded-lg text-sidebar-foreground/60",
-              "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            )}
+            className={RAIL_BUTTON}
           >
             <PanelLeftIcon className="size-4" />
           </Button>

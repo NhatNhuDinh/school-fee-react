@@ -3,6 +3,7 @@
 import type { CSSProperties, PropsWithChildren } from "react";
 
 import { Header } from "@/shared/components/layout/header";
+import { PageSlotsProvider } from "@/shared/components/layout/page-slots";
 import { Sidebar } from "@/shared/components/layout/sidebar";
 import { SidebarInset, SidebarProvider } from "@/shared/ui/sidebar";
 import { cn } from "@/shared/lib/utils";
@@ -53,6 +54,7 @@ export function Layout({ children }: PropsWithChildren) {
 
       <Sidebar />
 
+      <PageSlotsProvider>
       <SidebarInset className="min-w-0 bg-background">
         <Header />
 
@@ -69,6 +71,7 @@ export function Layout({ children }: PropsWithChildren) {
           {children}
         </main>
       </SidebarInset>
+      </PageSlotsProvider>
     </SidebarProvider>
   );
 }

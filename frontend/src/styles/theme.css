@@ -207,12 +207,13 @@
 
   /* One step below the card, for a table header, a toolbar strip or an inset
      panel that has to be told apart from the sheet it sits on. */
-  --surface-subtle: oklch(0.982 0.005 var(--preset-h));
+  --surface-subtle: oklch(0.975 0.008 var(--preset-h));
 
-  /* A table's header row takes the brand hue, so it follows the colour picked in the
-     customiser the way the sidebar does; surface-subtle stays the neutral strip. */
-  --table-header: oklch(0.94 calc(var(--preset-c) * 0.4) var(--preset-h));
-  --table-header-foreground: oklch(0.36 calc(var(--preset-c) * 0.7) var(--preset-h));
+  /* A table's header row is the same family as everything around it — the rail, the hover step, the selected wash —
+     one hue, a trace of chroma, a step off the card. It used to take a saturated brand tint of its own, which read as a
+     second blue beside the navy rail and the grey of a selected row. */
+  --table-header: color-mix(in oklab, var(--primary) 5%, var(--card));
+  --table-header-foreground: oklch(0.4 0.035 var(--preset-h));
 
   --primary: oklch(var(--preset-l) var(--preset-c) var(--preset-h));
   --primary-foreground: var(--preset-on, oklch(0.99 0.002 var(--preset-h)));
@@ -223,11 +224,13 @@
     calc(var(--preset-l) + 0.08) var(--preset-c) var(--preset-h)
   );
 
-  --secondary: oklch(0.958 0.008 var(--preset-h));
+  --secondary: oklch(0.958 0.012 var(--preset-h));
   --secondary-foreground: oklch(0.24 0.03 var(--preset-h));
-  --muted: oklch(0.958 0.008 var(--preset-h));
+  --muted: oklch(0.958 0.012 var(--preset-h));
   --muted-foreground: oklch(0.472 0.03 var(--preset-h));
-  --accent: oklch(0.935 0.012 var(--preset-h));
+  /* Hover, header and selection are one colour at three strengths — 7%, 5% and 10% (--brand-subtle) of the brand on
+     the card — so a hovered row, a header and a selected row can never be three unrelated blues. */
+  --accent: color-mix(in oklab, var(--primary) 7%, var(--card));
   --accent-foreground: oklch(0.24 0.03 var(--preset-h));
 
   /* ---- Status ------------------------------------------------------------
@@ -269,7 +272,7 @@
      unchecked switch track and, at 30%, the dark-mode field fill, so it is
      tuned to stay a legible grey in all three rather than pushed to the 3:1
      an edge on its own could take. */
-  --border: oklch(0.888 0.012 var(--preset-h));
+  --border: oklch(0.9 0.014 var(--preset-h));
   --input: oklch(0.79 0.016 var(--preset-h));
   --ring: oklch(var(--preset-l) var(--preset-c) var(--preset-h));
 
@@ -329,8 +332,8 @@
 
   --surface-subtle: oklch(0.225 0.02 var(--preset-h));
 
-  --table-header: oklch(0.28 calc(var(--preset-c-dark) * 0.5) var(--preset-h));
-  --table-header-foreground: oklch(0.86 calc(var(--preset-c-dark) * 0.35) var(--preset-h));
+  --table-header: oklch(0.27 0.024 var(--preset-h));
+  --table-header-foreground: oklch(0.86 0.022 var(--preset-h));
 
   --primary: oklch(var(--preset-l-dark) var(--preset-c-dark) var(--preset-h));
   --primary-foreground: oklch(0.14 0.02 var(--preset-h));
@@ -342,7 +345,7 @@
   --secondary-foreground: oklch(0.955 0.008 var(--preset-h));
   --muted: oklch(0.26 0.02 var(--preset-h));
   --muted-foreground: oklch(0.735 0.022 var(--preset-h));
-  --accent: oklch(0.3 0.024 var(--preset-h));
+  --accent: oklch(0.31 0.03 var(--preset-h));
   --accent-foreground: oklch(0.98 0.008 var(--preset-h));
 
   --destructive: oklch(0.7 0.2 27.3);

@@ -153,7 +153,7 @@ function Row({
         "hover:bg-accent/50 focus-visible:bg-accent/50 outline-none",
         indent && "ps-10",
         bold && "font-semibold",
-        active && "bg-primary/10 text-brand font-medium"
+        active && "bg-brand-subtle text-brand font-medium"
       )}
     >
       <span className="flex min-w-0 items-center">

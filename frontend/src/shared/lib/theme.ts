@@ -44,7 +44,7 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const DEFAULTS = {
-  mode: "system" as ThemeMode,
+  mode: "light" as ThemeMode,
   colorPreset: "navy" as ColorPreset,
   radius: "md" as Radius,
   sidebarTone: "light" as SidebarTone,

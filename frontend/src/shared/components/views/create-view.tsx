@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
+import { PageTitle } from "@/shared/components/layout/page-slots";
 import {
   useBack,
   useResourceParams,
@@ -41,8 +42,6 @@ type CreateHeaderProps = PropsWithChildren<{
 export const CreateViewHeader = ({
   resource: resourceFromProps,
   title: titleFromProps,
-  wrapperClassName,
-  headerClassName,
 }: CreateHeaderProps) => {
   const back = useBack();
 
@@ -59,22 +58,15 @@ export const CreateViewHeader = ({
     String(resource?.meta?.label ?? identifier ?? resource?.name ?? "");
 
   return (
-    <div className={cn("flex flex-col", "gap-4", wrapperClassName)}>
-      <div
-        className={cn(
-          "flex",
-          "gap-1",
-          "items-center",
-          "-ml-2.5",
-          headerClassName
-        )}
-      >
-        <Button data-print="hide" variant="ghost" size="icon" onClick={back}>
+    <>
+      {/* The back arrow and the name are in the top bar, with the actions; see page-slots.tsx. */}
+      <PageTitle>
+        <Button data-print="hide" variant="ghost" size="icon" onClick={back} className="-ms-2 shrink-0">
           <ArrowLeftIcon className="h-4 w-4" />
         </Button>
-        <h1 className="min-w-0 truncate text-3xl font-bold leading-9 tracking-tight">{title}</h1>
-      </div>
-    </div>
+        <h1 className="min-w-0 truncate text-xl font-semibold leading-7 tracking-tight">{title}</h1>
+      </PageTitle>
+    </>
   );
 };
 

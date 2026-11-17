@@ -90,7 +90,7 @@ export const BankReviewPage = () => {
   if (!enabled) {
     return (
       <ListView>
-        <ListViewHeader title="Rà soát giao dịch" canCreate={false} compact />
+        <ListViewHeader title="Rà soát giao dịch" canCreate={false} />
         <Card className="text-muted-foreground p-10 text-center text-sm">
           Thu tiền thuộc một năm học của một trường. Hãy đăng nhập bằng tài khoản của trường để xem.
         </Card>
@@ -192,7 +192,6 @@ function ReviewOfYear({ yearId }: { yearId: number }) {
       <ListViewHeader
         title="Rà soát giao dịch"
         canCreate={false}
-        compact
         actions={
           <Button type="button" variant="outline" disabled={checking || !canWrite?.can} onClick={checkAll}>
             <RefreshCwIcon className={cn(checking && "animate-spin")} />
