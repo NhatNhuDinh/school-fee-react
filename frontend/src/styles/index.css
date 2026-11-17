@@ -179,6 +179,15 @@
     "Courier New", monospace;
 }
 
+/* The command palette (kbar) locks the page by setting `overflow: hidden` and a `margin-right` equal to the browser's
+   scrollbar width, whether or not the page has a scrollbar. The shell is one screen tall and does not scroll, so that
+   margin pushed the whole app 15px left every time the palette opened and back when it closed — the screen "jumped".
+   `!important` is what beats an inline style. Radix's own lock (dialogs, selects) writes `body[data-scroll-locked]`
+   with a measured gap, which is more specific than this and still wins. */
+body {
+  margin-right: 0 !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/70;
